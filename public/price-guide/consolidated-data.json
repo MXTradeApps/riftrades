@@ -1,7 +1,7 @@
 {
   "metadata": {
     "game": "Riftbound",
-    "generatedAt": "2026-07-27T17:40:28.443Z",
+    "generatedAt": "2026-07-28T17:24:03.109Z",
     "totalFiles": 9,
     "totalRecords": 1891,
     "sourceManifest": {
@@ -36,7 +36,7 @@
       "24560": "Unleashed",
       "24698": "Vendetta"
     },
-    "cardmarketMergedAt": "2026-07-27T17:40:29.853Z",
+    "cardmarketMergedAt": "2026-07-28T17:24:04.435Z",
     "cardmarketProductsUrl": "https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_22.json",
     "cardmarketPricesUrl": "https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_22.json",
     "cardmarketMatchCount": 1720,
