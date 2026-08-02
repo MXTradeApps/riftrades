@@ -34,6 +34,7 @@ import { FILLER_BALANCE_THRESHOLD } from "../../utils/findFiller.js";
 import { saveTradeToHistory } from "../../services/tradeHistory.js";
 import { confirmTrade } from "../../services/confirmTrade.js";
 import { FreeLimits } from "../../utils/freeLimits.js";
+import { capture } from "../../lib/analytics.js";
 
 const TradeSummary = ({ 
     haveList, 
@@ -77,12 +78,14 @@ const TradeSummary = ({
     const handlePriceTypeChange = (event, newPriceType) => {
         if (newPriceType !== null) {
             setPriceType(newPriceType);
+            capture('price_type_changed', { price_type: newPriceType, price_source: priceSource });
         }
     };
 
     const handlePriceSourceChange = (event, newPriceSource) => {
         if (newPriceSource !== null) {
             setPriceSource(newPriceSource);
+            capture('price_source_changed', { price_source: newPriceSource, price_type: priceType });
         }
     };
 
@@ -104,6 +107,11 @@ const TradeSummary = ({
             clearTrade();
         } else {
             clearURLTradeData?.();
+            capture('trade_cleared', {
+                have_count: haveList.length,
+                want_count: wantList.length,
+                source: 'url_clear',
+            });
         }
         setShowClearConfirm(false);
     };
@@ -124,8 +132,18 @@ const TradeSummary = ({
         setSaving(false);
         if (error) {
             setSnackbar({ open: true, message: error.message || 'Failed to save trade', severity: 'error' });
+            capture('trade_save_failed', { error_message: error.message || 'unknown' });
             return;
         }
+        capture('trade_saved', {
+            have_count: haveCardCount,
+            want_count: wantCardCount,
+            have_total: haveTotal,
+            want_total: wantTotal,
+            diff,
+            rolled_off: trimmed || 0,
+            signed_in: Boolean(user),
+        });
         setShowSaveDialog(false);
         setSnackbar(
             trimmed > 0
@@ -161,8 +179,19 @@ const TradeSummary = ({
                 message: error.message || 'Failed to confirm trade',
                 severity: 'error',
             });
+            capture('trade_confirm_failed', { error_message: error.message || 'unknown' });
             return;
         }
+        capture('trade_confirmed', {
+            have_count: haveCardCount,
+            want_count: wantCardCount,
+            have_total: haveTotal,
+            want_total: wantTotal,
+            diff,
+            remove_given: removeGiven && haveCardCount > 0,
+            add_received: addReceived && wantCardCount > 0,
+            rolled_off: trimmed || 0,
+        });
         setShowConfirmDialog(false);
         if (typeof clearTrade === 'function') {
             clearTrade();
@@ -396,7 +425,14 @@ const TradeSummary = ({
                             size="small"
                             variant="contained"
                             startIcon={<AutoFixHighIcon sx={{ fontSize: '14px !important' }} />}
-                            onClick={() => setShowFiller(true)}
+                            onClick={() => {
+                                capture('filler_opened', {
+                                    have_count: haveCardCount,
+                                    want_count: wantCardCount,
+                                    diff,
+                                });
+                                setShowFiller(true);
+                            }}
                             sx={{
                                 textTransform: 'none',
                                 fontWeight: 700,

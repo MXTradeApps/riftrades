@@ -30,6 +30,7 @@ import {
     findFillerMatches,
     getClosenessLabel
 } from '../../utils/findFiller.js';
+import { capture } from '../../lib/analytics.js';
 
 const formatCardType = (subTypeName) => {
     if (!subTypeName) return null;
@@ -87,6 +88,11 @@ const FindFillerDialog = ({
         } else {
             onAddWant(option);
         }
+        capture('filler_card_added', {
+            side: fillSide,
+            card_name: card.name,
+            target_gap: target,
+        });
         onAdded?.(card, fillSide);
     };
 

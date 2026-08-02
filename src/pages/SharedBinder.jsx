@@ -22,6 +22,7 @@ import { CardImageModal } from '../components/ui/CardImagePreview.jsx';
 import { getPublicBinder } from '../services/binder.js';
 import { formatCurrency } from '../utils/helpers.js';
 import { addCardToTradeDraft } from '../utils/tradeDraft.js';
+import { capture } from '../lib/analytics.js';
 
 const SORT_OPTIONS = [
     { id: 'nameAsc', label: 'Name (A–Z)' },
@@ -179,8 +180,17 @@ const SharedBinder = () => {
             if (fetchError) {
                 setError(fetchError.message || 'This binder link is unavailable');
                 setEntries([]);
+                capture('shared_binder_view_failed', {
+                    token,
+                    error_message: fetchError.message || 'unavailable',
+                });
             } else {
-                setEntries(data.entries || []);
+                const list = data.entries || [];
+                setEntries(list);
+                capture('shared_binder_viewed', {
+                    token,
+                    card_count: list.length,
+                });
             }
             setLoading(false);
         })();
@@ -270,6 +280,10 @@ const SharedBinder = () => {
 
         const shortName = live?.name || stub.name || 'Card';
         setToast(`Added ${shortName} to trade calculator`);
+        capture('shared_binder_add_to_trade', {
+            card_name: shortName,
+            token,
+        });
     };
 
     return (

@@ -22,8 +22,10 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
+    "@posthog/react": "^1.10.3",
     "@supabase/supabase-js": "^2.110.5",
     "papaparse": "^5.5.3",
+    "posthog-js": "^1.409.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2"

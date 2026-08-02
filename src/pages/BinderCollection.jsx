@@ -38,6 +38,7 @@ import Header from '../components/elements/Header.jsx';
 import { SearchInput } from '../components/search/index.js';
 import { CardImageModal } from '../components/ui/CardImagePreview.jsx';
 import SignInDialog from '../components/auth/SignInDialog.jsx';
+import { capture } from '../lib/analytics.js';
 import {
     ensureBinderShare,
     getBinderEntries,
@@ -345,6 +346,10 @@ const BinderCollection = ({ isWanted = false }) => {
             setLimitMessage(
                 `${isWanted ? 'Want lists' : 'Binders'} hold ${limit} cards on the free plan. Subscribe in the RiftTrades app to add more.`,
             );
+            capture('free_limit_hit', {
+                list: isWanted ? 'want' : 'binder',
+                limit,
+            });
             return;
         }
 
@@ -370,6 +375,11 @@ const BinderCollection = ({ isWanted = false }) => {
             return [data, ...without];
         });
         setToast(`Added ${catalogCard.name} to ${listLabel}`);
+        capture(isWanted ? 'want_card_added' : 'binder_card_added', {
+            card_name: catalogCard.name,
+            quantity: nextQty,
+            bumped_existing: Boolean(existing),
+        });
     };
 
     const updateQuantity = async (entry, quantity) => {
@@ -464,6 +474,10 @@ const BinderCollection = ({ isWanted = false }) => {
             return;
         }
         setEntries((prev) => prev.filter((e) => e.cardId !== entry.cardId));
+        capture(isWanted ? 'want_card_removed' : 'binder_card_removed', {
+            card_name: entry.card?.name || entry.stub?.name || null,
+            quantity: entry.quantity || 1,
+        });
     };
 
     const openShareDialog = async () => {
@@ -477,6 +491,7 @@ const BinderCollection = ({ isWanted = false }) => {
             return;
         }
         setShare(data);
+        capture('binder_share_opened', { enabled: Boolean(data?.isEnabled) });
     };
 
     const copyShareLink = async () => {
@@ -484,6 +499,7 @@ const BinderCollection = ({ isWanted = false }) => {
         try {
             await navigator.clipboard.writeText(share.url);
             setToast('Link copied');
+            capture('binder_share_copied');
         } catch {
             setToast('Could not copy link');
         }
@@ -499,6 +515,7 @@ const BinderCollection = ({ isWanted = false }) => {
         }
         setShare(data);
         setToast(enabled ? 'Sharing enabled' : 'Sharing turned off');
+        capture('binder_share_toggled', { enabled });
     };
 
     const handleRegenerateShare = async () => {
@@ -511,6 +528,7 @@ const BinderCollection = ({ isWanted = false }) => {
         }
         setShare(data);
         setToast('New link created — old link no longer works');
+        capture('binder_share_regenerated');
     };
 
     if (!user) {

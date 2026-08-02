@@ -11,6 +11,7 @@ import {
 } from "../utils/urlEncoding.js";
 import { loadTradeDraft, saveTradeDraft } from "../utils/tradeDraft.js";
 import { normalizeTradeList } from "../utils/tradeItems.js";
+import { capture } from "../lib/analytics.js";
 
 export function useTradeState(cardGroups, cardIdLookup = {}) {
     const [haveList, setHaveList] = useState([]);
@@ -69,7 +70,7 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
         }).filter(Boolean);
     };
 
-    const addCard = (list, setList, cardNameOrObject, inputSetter) => {
+    const addCard = (list, setList, cardNameOrObject, inputSetter, side) => {
         let cardName, selectedCard;
 
         if (typeof cardNameOrObject === 'object' && cardNameOrObject !== null) {
@@ -90,12 +91,19 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
 
         if (existingIndex >= 0) {
             const updatedList = [...list];
+            const nextQty = (updatedList[existingIndex].quantity || 1) + 1;
             updatedList[existingIndex] = {
                 ...updatedList[existingIndex],
-                quantity: (updatedList[existingIndex].quantity || 1) + 1
+                quantity: nextQty
             };
             setList(updatedList);
             inputSetter("");
+            capture('trade_card_added', {
+                side,
+                card_name: cardName,
+                quantity: nextQty,
+                bumped_existing: true,
+            });
             return;
         }
 
@@ -126,11 +134,27 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                 }
             ]);
             inputSetter("");
+            capture('trade_card_added', {
+                side,
+                card_name: cardName,
+                sub_type: subTypeName,
+                quantity: 1,
+                bumped_existing: false,
+                price: edition.cardPrice || 0,
+            });
         }
     };
 
-    const removeCard = (list, setList, index) => {
+    const removeCard = (list, setList, index, side) => {
+        const removed = list[index];
         setList(list.filter((_, i) => i !== index));
+        if (removed) {
+            capture('trade_card_removed', {
+                side,
+                card_name: removed.name,
+                quantity: removed.quantity || 1,
+            });
+        }
     };
 
     const updateQuantity = (list, setList, index, newQuantity) => {
@@ -188,6 +212,11 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                 setDraftReady(true);
 
                 console.log(`Loaded trade from URL: ${reconstructedHave.length} have, ${reconstructedWant.length} want`);
+                capture('trade_loaded_from_url', {
+                    have_count: reconstructedHave.length,
+                    want_count: reconstructedWant.length,
+                    age_days: tradeData.ageInDays || null,
+                });
 
                 if (tradeData.ageInDays && tradeData.ageInDays > 7) {
                     console.warn(`Trade data is ${Math.round(tradeData.ageInDays)} days old`);
@@ -226,6 +255,10 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
     };
 
     const clearTrade = () => {
+        capture('trade_cleared', {
+            have_count: haveList.length,
+            want_count: wantList.length,
+        });
         setHaveList([]);
         setWantList([]);
         setHaveInput('');
@@ -287,9 +320,16 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
             }).filter(Boolean);
         };
 
-        setHaveList(reconstructFromHistory(trade.have_list));
-        setWantList(reconstructFromHistory(trade.want_list));
+        const have = reconstructFromHistory(trade.have_list);
+        const want = reconstructFromHistory(trade.want_list);
+        setHaveList(have);
+        setWantList(want);
         clearURLTradeData();
+        capture('trade_loaded_from_history', {
+            have_count: have.length,
+            want_count: want.length,
+            trade_id: trade.id || null,
+        });
     };
 
     // Get URL size estimation
@@ -313,10 +353,10 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
         wantInput,
         setHaveInput,
         setWantInput,
-        addHaveCard: (name) => addCard(haveList, setHaveList, name || haveInput, setHaveInput),
-        addWantCard: (name) => addCard(wantList, setWantList, name || wantInput, setWantInput),
-        removeHaveCard: (index) => removeCard(haveList, setHaveList, index),
-        removeWantCard: (index) => removeCard(wantList, setWantList, index),
+        addHaveCard: (name) => addCard(haveList, setHaveList, name || haveInput, setHaveInput, 'have'),
+        addWantCard: (name) => addCard(wantList, setWantList, name || wantInput, setWantInput, 'want'),
+        removeHaveCard: (index) => removeCard(haveList, setHaveList, index, 'have'),
+        removeWantCard: (index) => removeCard(wantList, setWantList, index, 'want'),
         updateHaveCardQuantity: (i, q) => updateQuantity(haveList, setHaveList, i, q),
         updateWantCardQuantity: (i, q) => updateQuantity(wantList, setWantList, i, q),
         haveTotal,

@@ -84,6 +84,7 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                 <Toolbar
                     variant="dense"
                     sx={{
+                        position: 'relative',
                         px: { xs: 0.75, sm: 1.5, md: 2 },
                         py: 0.5,
                         minHeight: { xs: 48, sm: 52 },
@@ -93,7 +94,14 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                         gap: 1,
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, minWidth: 0, flexShrink: 0 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.25,
+                        minWidth: 0,
+                        flexShrink: 1,
+                        zIndex: 1,
+                    }}>
                         <Tooltip title="Menu">
                             <IconButton
                                 onClick={() => setDrawerOpen(true)}
@@ -130,12 +138,15 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
 
                     <Box
                         sx={{
+                            position: 'absolute',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 0.75,
-                            flexGrow: 1,
-                            minWidth: 0,
+                            pointerEvents: 'auto',
+                            zIndex: 0,
                             cursor: currentView.type !== 'home' || location.pathname !== '/'
                                 ? 'pointer'
                                 : 'default'
@@ -172,13 +183,21 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                                 backgroundClip: 'text',
                                 letterSpacing: '0.02em',
                                 lineHeight: 1.2,
+                                whiteSpace: 'nowrap',
                             }}
                         >
                             RiftTrades
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        flexShrink: 0,
+                        zIndex: 1,
+                        ml: 'auto',
+                    }}>
                         <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
                             <IconButton
                                 onClick={toggleMode}

@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { capture, identifyUser, resetAnalytics } from '../lib/analytics';
 
 const AuthContext = createContext({});
 
@@ -48,6 +49,7 @@ export const AuthProvider = ({ children }) => {
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
     const [authError, setAuthError] = useState(null);
+    const identifiedUserId = useRef(null);
 
     useEffect(() => {
         // If Supabase is not configured, set loading to false and return
@@ -58,7 +60,12 @@ export const AuthProvider = ({ children }) => {
 
         const redirectError = readOAuthRedirectError();
         if (redirectError) {
-            setAuthError(redirectError.replace(/\+/g, ' '));
+            const message = redirectError.replace(/\+/g, ' ');
+            setAuthError(message);
+            capture('auth_failed', {
+                flow: 'oauth_callback',
+                error_message: message,
+            });
             clearOAuthRedirectParams();
         }
 
@@ -72,15 +79,38 @@ export const AuthProvider = ({ children }) => {
         // Listen for auth changes
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
             if (session) setAuthError(null);
+
+            if (event === 'SIGNED_IN' && session?.user) {
+                identifyUser(session.user);
+                identifiedUserId.current = session.user.id;
+                capture('user_signed_in', {
+                    auth_provider:
+                        session.user.app_metadata?.provider ||
+                        session.user.app_metadata?.providers?.[0] ||
+                        'unknown',
+                });
+            } else if (event === 'SIGNED_OUT') {
+                capture('user_signed_out');
+                resetAnalytics();
+                identifiedUserId.current = null;
+            }
         });
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Identify returning sessions (getSession does not emit SIGNED_IN).
+    useEffect(() => {
+        if (!user?.id) return;
+        if (identifiedUserId.current === user.id) return;
+        identifyUser(user);
+        identifiedUserId.current = user.id;
+    }, [user]);
 
     /**
      * Start an OAuth browser redirect for Discord, Google, or Apple.
@@ -96,6 +126,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
+            capture('oauth_started', { auth_provider: provider });
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
@@ -107,6 +138,11 @@ export const AuthProvider = ({ children }) => {
             return { data, error: null };
         } catch (error) {
             console.error(`Error signing in with ${provider}:`, error);
+            capture('auth_failed', {
+                flow: 'oauth',
+                auth_provider: provider,
+                error_message: error?.message || 'oauth_failed',
+            });
             return { data: null, error };
         }
     };
@@ -130,6 +166,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
+            capture('email_sign_in_started');
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: trimmed,
                 password,
@@ -138,6 +175,10 @@ export const AuthProvider = ({ children }) => {
             return { data, error: null };
         } catch (error) {
             console.error('Error signing in with email:', error);
+            capture('auth_failed', {
+                flow: 'email_sign_in',
+                error_message: error?.message || 'email_sign_in_failed',
+            });
             return { data: null, error };
         }
     };
@@ -162,6 +203,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
+            capture('email_sign_up_started');
             const { data, error } = await supabase.auth.signUp({
                 email: trimmed,
                 password,
@@ -170,9 +212,14 @@ export const AuthProvider = ({ children }) => {
                 },
             });
             if (error) throw error;
+            capture('user_signed_up', { auth_provider: 'email' });
             return { data, error: null };
         } catch (error) {
             console.error('Error signing up with email:', error);
+            capture('auth_failed', {
+                flow: 'email_sign_up',
+                error_message: error?.message || 'email_sign_up_failed',
+            });
             return { data: null, error };
         }
     };

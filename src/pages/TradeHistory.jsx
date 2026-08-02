@@ -37,6 +37,7 @@ import { normalizeTradeList, tradeDisplayName } from '../utils/tradeItems.js';
 import { CardThumbnail } from '../components/ui/CardImagePreview.jsx';
 import Header from '../components/elements/Header.jsx';
 import SignInDialog from '../components/auth/SignInDialog.jsx';
+import { capture } from '../lib/analytics.js';
 
 /** Format an amount with a trade's currency_symbol when present (mobile trades). */
 function formatTradeMoney(amount, currencySymbol = '$') {
@@ -96,12 +97,14 @@ const TradeHistory = () => {
             setDeleteError(delError.message || 'Failed to delete trade');
         } else {
             setTrades(prev => prev.filter(t => t.id !== trade.id));
+            capture('trade_history_deleted', { trade_id: trade.id });
         }
 
         setDeletingId(null);
     };
 
     const handleLoadTrade = (trade) => {
+        capture('trade_history_load_clicked', { trade_id: trade.id });
         // Navigate to home with trade data in state
         navigate('/', { state: { loadTrade: trade } });
     };
