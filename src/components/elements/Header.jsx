@@ -26,6 +26,7 @@ import {
     PrivacyTip as PrivacyIcon,
     CollectionsBookmark as BinderIcon,
     FavoriteBorder as WantIcon,
+    History as HistoryIcon,
 } from '@mui/icons-material';
 import { formatTimestamp } from "../../utils/helpers.js";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
@@ -306,6 +307,29 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                         </ListItemIcon>
                         <ListItemText
                             primary="Want List"
+                            primaryTypographyProps={{
+                                fontWeight: 600,
+                                color: isDark ? '#e8f4f8' : '#0a2540'
+                            }}
+                        />
+                    </ListItemButton>
+
+                    <ListItemButton
+                        selected={location.pathname === '/history'}
+                        onClick={() => handleRoute('/history')}
+                        sx={{
+                            mx: 1,
+                            borderRadius: 2,
+                            '&.Mui-selected': {
+                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
+                            }
+                        }}
+                    >
+                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
+                            <HistoryIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="Trade History"
                             primaryTypographyProps={{
                                 fontWeight: 600,
                                 color: isDark ? '#e8f4f8' : '#0a2540'

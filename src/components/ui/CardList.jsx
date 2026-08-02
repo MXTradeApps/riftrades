@@ -32,7 +32,9 @@ const CardList = ({
     onInputChange, 
     onAddCard, 
     title,
-    disabled = false 
+    disabled = false,
+    viewMode = 'list',
+    isLandscape = false,
 }) => {
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -41,8 +43,8 @@ const CardList = ({
     const [selectedCard, setSelectedCard] = useState(null);
     const { priceSource } = usePriceType();
     const { isDark } = useThemeMode();
+    const isGrid = viewMode === 'grid';
 
-    // Format price based on source
     const formatPrice = (amount) => {
         if (priceSource === 'cardmarket') {
             return new Intl.NumberFormat('de-DE', {
@@ -87,8 +89,50 @@ const CardList = ({
         setSelectedCard(null);
     };
 
-    // Generate quantity options (1-6)
     const quantityOptions = Array.from({ length: 6 }, (_, i) => i + 1);
+
+    const muted = isDark ? 'rgba(160, 196, 212, 0.7)' : 'rgba(26, 74, 110, 0.55)';
+    const paperBorder = isDark ? 'rgba(58, 154, 186, 0.25)' : 'rgba(26, 90, 122, 0.15)';
+    const textColor = isDark ? '#e8f4f8' : '#0a2540';
+
+    const quantitySelect = (card, index, { compact = false } = {}) => (
+        <FormControl
+            size="small"
+            sx={{
+                minWidth: compact ? 48 : { xs: 50, sm: 55, md: 60, lg: 65, xl: 70 },
+                flexShrink: 0,
+                '& .MuiOutlinedInput-root': {
+                    fontSize: compact
+                        ? '0.7rem'
+                        : { xs: '0.7rem', sm: '0.75rem', md: '0.8rem', lg: '0.85rem', xl: '0.9rem' },
+                    height: compact ? 26 : { xs: 26, sm: 28, md: 30, lg: 32, xl: 34 }
+                }
+            }}
+            onClick={(event) => event.stopPropagation()}
+        >
+            <Select
+                value={card.quantity || 1}
+                onChange={(e) => handleQuantityChange(index, e.target.value)}
+                sx={{
+                    fontSize: compact
+                        ? '0.7rem'
+                        : { xs: '0.7rem', sm: '0.75rem', md: '0.8rem', lg: '0.85rem', xl: '0.9rem' },
+                    '& .MuiSelect-select': {
+                        py: compact ? 0.25 : { xs: 0.25, sm: 0.5, md: 0.75, lg: 1, xl: 1.25 },
+                        px: compact ? 0.75 : { xs: 0.75, sm: 1, md: 1.25, lg: 1.5, xl: 1.75 }
+                    }
+                }}
+            >
+                {quantityOptions.map((qty) => (
+                    <MenuItem key={qty} value={qty} sx={{ 
+                        fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem', lg: '0.85rem', xl: '0.9rem' }
+                    }}>
+                        {qty}
+                    </MenuItem>
+                ))}
+            </Select>
+        </FormControl>
+    );
 
     return (
         <>
@@ -99,7 +143,6 @@ const CardList = ({
             minHeight: 0,
             width: '100%'
         }}>
-            {/* Search Input pinned at the top of the panel */}
             <Box sx={{
                 flexShrink: 0,
                 mb: 1,
@@ -156,167 +199,306 @@ const CardList = ({
                 )}
             </Box>
 
-            <List sx={{
+            <Box sx={{
                 flexGrow: 1,
                 overflow: 'auto',
                 minHeight: 0,
                 width: '100%',
-                p: 0,
-                m: 0,
-                '& .MuiListItem-root': {
-                    width: '100%',
-                    maxWidth: '100%'
-                }
+                display: 'flex',
+                flexDirection: 'column',
             }}>
-            {cards.map((card, index) => {
-                const gradient = getCardGradient(card.subTypeName, '', isDark);
-                return (
-                    <ListItem
-                        key={`${card.name}-${index}`}
-                        sx={{
-                            border: isDark 
-                                ? '1px solid rgba(58, 154, 186, 0.2)' 
-                                : '1px solid rgba(26, 90, 122, 0.15)',
-                            borderRadius: 2,
-                            mb: 1,
-                            background: gradient.background,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            p: { xs: 1, sm: 1.25, md: 1.5, lg: 1.75, xl: 2 },
-                            position: 'relative',
+                {!isGrid && cards.length > 0 && (
+                    <List sx={{
+                        width: '100%',
+                        p: 0,
+                        m: 0,
+                        '& .MuiListItem-root': {
                             width: '100%',
-                            boxShadow: '0 2px 6px rgba(10, 37, 64, 0.1)',
-                            '&:hover': {
-                                borderColor: '#d4a853',
-                                boxShadow: '0 4px 12px rgba(212, 168, 83, 0.2)',
-                                transform: 'translateY(-1px)',
-                                background: gradient.backgroundHover,
-                            },
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                            '&::before': {
-                                content: '""',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '4px',
-                                height: '100%',
-                                background: 'linear-gradient(180deg, #d4a853 0%, #b8892e 100%)',
-                                borderTopLeftRadius: 8,
-                                borderBottomLeftRadius: 8,
-                                opacity: 0,
-                                transition: 'opacity 0.25s ease'
-                            },
-                            '&:hover::before': {
-                                opacity: 1
-                            }
-                        }}
-                    >
-                        {/* Card Thumbnail */}
-                        <CardThumbnail 
-                            imageUrl={card.imageUrl} 
-                            alt={card.name}
-                            size={40}
-                            onClick={() => handleImageClick(card)}
-                        />
-                        
-                        {/* Card Name and Quantity */}
-                        <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {/* Quantity Dropdown */}
-                            <FormControl
-                                size="small"
-                                sx={{
-                                    minWidth: { xs: 50, sm: 55, md: 60, lg: 65, xl: 70 },
-                                    flexShrink: 0,
-                                    '& .MuiOutlinedInput-root': {
-                                        fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem', lg: '0.85rem', xl: '0.9rem' },
-                                        height: { xs: 26, sm: 28, md: 30, lg: 32, xl: 34 }
-                                    }
-                                }}
-                                onClick={(event) => event.stopPropagation()}
-                            >
-                                <Select
-                                    value={card.quantity || 1}
-                                    onChange={(e) => handleQuantityChange(index, e.target.value)}
+                            maxWidth: '100%'
+                        }
+                    }}>
+                        {cards.map((card, index) => {
+                            const gradient = getCardGradient(card.subTypeName, '', isDark);
+                            return (
+                                <ListItem
+                                    key={`${card.uniqueId || card.name}-${index}`}
                                     sx={{
-                                        fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem', lg: '0.85rem', xl: '0.9rem' },
-                                        '& .MuiSelect-select': {
-                                            py: { xs: 0.25, sm: 0.5, md: 0.75, lg: 1, xl: 1.25 },
-                                            px: { xs: 0.75, sm: 1, md: 1.25, lg: 1.5, xl: 1.75 }
+                                        border: isDark 
+                                            ? '1px solid rgba(58, 154, 186, 0.2)' 
+                                            : '1px solid rgba(26, 90, 122, 0.15)',
+                                        borderRadius: 2,
+                                        mb: 1,
+                                        background: gradient.background,
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        gap: 1.5,
+                                        p: { xs: 1, sm: 1.25, md: 1.5, lg: 1.75, xl: 2 },
+                                        position: 'relative',
+                                        width: '100%',
+                                        boxShadow: '0 2px 6px rgba(10, 37, 64, 0.1)',
+                                        '&:hover': {
+                                            borderColor: '#d4a853',
+                                            boxShadow: '0 4px 12px rgba(212, 168, 83, 0.2)',
+                                            transform: 'translateY(-1px)',
+                                            background: gradient.backgroundHover,
+                                        },
+                                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        '&::before': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '4px',
+                                            height: '100%',
+                                            background: 'linear-gradient(180deg, #d4a853 0%, #b8892e 100%)',
+                                            borderTopLeftRadius: 8,
+                                            borderBottomLeftRadius: 8,
+                                            opacity: 0,
+                                            transition: 'opacity 0.25s ease'
+                                        },
+                                        '&:hover::before': {
+                                            opacity: 1
                                         }
                                     }}
                                 >
-                                    {quantityOptions.map((qty) => (
-                                        <MenuItem key={qty} value={qty} sx={{ 
-                                            fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem', lg: '0.85rem', xl: '0.9rem' }
-                                        }}>
-                                            {qty}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
+                                    <CardThumbnail 
+                                        imageUrl={card.imageUrl} 
+                                        alt={card.name}
+                                        size={40}
+                                        onClick={() => handleImageClick(card)}
+                                    />
+                                    
+                                    <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        {quantitySelect(card, index)}
 
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    fontSize: { xs: '0.8rem', sm: '0.875rem', md: '0.95rem', lg: '1rem', xl: '1.125rem' },
-                                    fontWeight: 'medium',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    flex: 1,
-                                    minWidth: 0
-                                }}
-                            >
-                                {card.name}
-                            </Typography>
-                        </Box>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{
+                                                fontSize: { xs: '0.8rem', sm: '0.875rem', md: '0.95rem', lg: '1rem', xl: '1.125rem' },
+                                                fontWeight: 'medium',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                flex: 1,
+                                                minWidth: 0
+                                            }}
+                                        >
+                                            {card.name}
+                                        </Typography>
+                                    </Box>
 
-                        {/* Price and Delete Button */}
-                        <Box sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            flexShrink: 0,
-                            minWidth: 'fit-content'
-                        }}>
-                            {/* Price Chip */}
-                            <Chip
-                                label={formatPrice(card.price || 0)}
-                                color="primary"
-                                size="small"
-                                sx={{
-                                    fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem', lg: '0.8rem', xl: '0.875rem' },
-                                    minWidth: 'fit-content'
-                                }}
-                            />
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        flexShrink: 0,
+                                        minWidth: 'fit-content'
+                                    }}>
+                                        <Chip
+                                            label={formatPrice(card.price || 0)}
+                                            color="primary"
+                                            size="small"
+                                            sx={{
+                                                fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem', lg: '0.8rem', xl: '0.875rem' },
+                                                minWidth: 'fit-content'
+                                            }}
+                                        />
 
-                            {/* Delete Button */}
-                            <IconButton
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onRemoveCard(index);
-                                }}
-                                size="small"
-                                aria-label={`Delete ${card.name || 'card'}`}
-                                sx={{
-                                    color: 'error.main',
-                                    p: { xs: 0.25, sm: 0.5, md: 0.75, lg: 1, xl: 1.25 },
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(244, 67, 54, 0.1)'
-                                    }
-                                }}
-                            >
-                                <DeleteIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
-                    </ListItem>
-                );
-            })}
-            </List>
+                                        <IconButton
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                onRemoveCard(index);
+                                            }}
+                                            size="small"
+                                            aria-label={`Delete ${card.name || 'card'}`}
+                                            sx={{
+                                                color: 'error.main',
+                                                p: { xs: 0.25, sm: 0.5, md: 0.75, lg: 1, xl: 1.25 },
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(244, 67, 54, 0.1)'
+                                                }
+                                            }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                </ListItem>
+                            );
+                        })}
+                    </List>
+                )}
+
+                {isGrid && cards.length > 0 && (
+                    <Box
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: isLandscape
+                                ? 'repeat(auto-fill, minmax(132px, 148px))'
+                                : 'repeat(auto-fill, minmax(120px, 1fr))',
+                            gap: isLandscape ? 0.85 : 1,
+                            width: '100%',
+                            pb: 0.5,
+                            justifyContent: isLandscape ? 'start' : 'stretch',
+                        }}
+                    >
+                        {cards.map((card, index) => {
+                            const gradient = getCardGradient(card.subTypeName, '', isDark);
+                            return (
+                                <Box
+                                    key={`${card.uniqueId || card.name}-${index}`}
+                                    sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                        border: `1px solid ${paperBorder}`,
+                                        background: gradient.background,
+                                        boxShadow: '0 1px 4px rgba(10, 37, 64, 0.1)',
+                                        transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                                        '&:hover': {
+                                            borderColor: '#d4a853',
+                                            background: gradient.backgroundHover,
+                                        },
+                                    }}
+                                >
+                                    <Box
+                                        component="button"
+                                        type="button"
+                                        onClick={() => handleImageClick(card)}
+                                        aria-label={`Preview ${card.name || 'card'}`}
+                                        sx={{
+                                            position: 'relative',
+                                            width: '100%',
+                                            aspectRatio: '5 / 7',
+                                            p: 0,
+                                            border: 0,
+                                            cursor: 'pointer',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        {card.imageUrl || card.imageUrlFallback ? (
+                                            <Box
+                                                component="img"
+                                                src={card.imageUrl || card.imageUrlFallback}
+                                                alt={card.name || ''}
+                                                loading="lazy"
+                                                onError={(e) => {
+                                                    if (
+                                                        card.imageUrlFallback
+                                                        && e.currentTarget.src !== card.imageUrlFallback
+                                                    ) {
+                                                        e.currentTarget.src = card.imageUrlFallback;
+                                                    }
+                                                }}
+                                                sx={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                    objectPosition: 'top',
+                                                    display: 'block',
+                                                }}
+                                            />
+                                        ) : (
+                                            <Box
+                                                sx={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    px: 0.5,
+                                                }}
+                                            >
+                                                <Typography sx={{ color: muted, fontSize: '0.65rem', textAlign: 'center' }}>
+                                                    No image
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                px: 0.5,
+                                                py: 0.1,
+                                                fontSize: '0.65rem',
+                                                fontWeight: 800,
+                                                color: '#fff',
+                                                backgroundColor: 'rgba(0, 0, 0, 0.78)',
+                                                borderBottomRightRadius: 4,
+                                            }}
+                                        >
+                                            {card.quantity || 1}x
+                                        </Box>
+                                    </Box>
+
+                                    <Box sx={{
+                                        px: 0.7,
+                                        py: 0.55,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 0.35,
+                                    }}>
+                                        <Typography
+                                            sx={{
+                                                color: textColor,
+                                                fontWeight: 600,
+                                                fontSize: '0.72rem',
+                                                lineHeight: 1.2,
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                minHeight: '1.7em',
+                                            }}
+                                            title={card.name}
+                                        >
+                                            {card.name}
+                                        </Typography>
+
+                                        <Typography
+                                            sx={{
+                                                color: isDark ? '#e5c078' : '#1a5a7a',
+                                                fontWeight: 700,
+                                                fontSize: '0.75rem',
+                                                fontVariantNumeric: 'tabular-nums',
+                                                lineHeight: 1.2,
+                                            }}
+                                        >
+                                            {card.price ? formatPrice(card.price) : 'No price'}
+                                        </Typography>
+
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            {quantitySelect(card, index, { compact: true })}
+                                            <IconButton
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    onRemoveCard(index);
+                                                }}
+                                                size="small"
+                                                aria-label={`Delete ${card.name || 'card'}`}
+                                                sx={{
+                                                    color: 'error.main',
+                                                    p: 0.25,
+                                                    ml: 'auto',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(244, 67, 54, 0.1)'
+                                                    }
+                                                }}
+                                            >
+                                                <DeleteIcon sx={{ fontSize: '1rem' }} />
+                                            </IconButton>
+                                        </Box>
+                                    </Box>
+                                </Box>
+                            );
+                        })}
+                    </Box>
+                )}
+            </Box>
         </Box>
 
-        {/* Full-screen search dialog for small screens */}
         <SearchDialog
             open={searchDialogOpen}
             onClose={handleDialogClose}
@@ -325,7 +507,6 @@ const CardList = ({
             onSelect={handleDialogAddCard}
         />
 
-        {/* Image Modal for viewing full-size card images */}
         <CardImageModal
             open={imageModalOpen}
             onClose={handleImageModalClose}

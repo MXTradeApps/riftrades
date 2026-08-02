@@ -4,6 +4,7 @@ import Home from './pages/Home.jsx';
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
 import BinderCollection from './pages/BinderCollection.jsx';
 import SharedBinder from './pages/SharedBinder.jsx';
+import TradeHistory from './pages/TradeHistory.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { EntitlementProvider } from './contexts/EntitlementContext.jsx';
 
@@ -17,6 +18,7 @@ function App() {
                     <Route path="/binder" element={<BinderCollection isWanted={false} />} />
                     <Route path="/wants" element={<BinderCollection isWanted={true} />} />
                     <Route path="/b/:token" element={<SharedBinder />} />
+                    <Route path="/history" element={<TradeHistory />} />
                 </Routes>
             </EntitlementProvider>
         </AuthProvider>

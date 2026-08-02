@@ -16,7 +16,9 @@ export const useSearch = ({
     onSelect,
     inputValue = '',
     onInputChange,
-    disabled = false
+    disabled = false,
+    keepOpenOnSelect = false,
+    keepInputOnSelect = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -59,10 +61,17 @@ export const useSearch = ({
     // Handle item selection
     const handleSelect = useCallback((item) => {
         onSelect?.(item);
-        setIsOpen(false);
         setHighlightedIndex(-1);
-        onInputChange?.(null, '');
-    }, [onSelect, onInputChange]);
+        if (!keepInputOnSelect) {
+            onInputChange?.(null, '');
+        }
+        if (keepOpenOnSelect) {
+            setIsOpen(true);
+            inputRef.current?.focus();
+        } else {
+            setIsOpen(false);
+        }
+    }, [onSelect, onInputChange, keepOpenOnSelect, keepInputOnSelect]);
 
     // Handle keyboard navigation
     const handleKeyDown = useCallback((event) => {

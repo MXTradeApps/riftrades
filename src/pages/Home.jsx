@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useCardData } from "../hooks/useCardData.jsx";
 import { useTradeState } from "../hooks/useTradeState.js";
@@ -13,14 +14,17 @@ const Home = () => {
     const [lastUpdatedTimestamp, setLastUpdatedTimestamp] = useState(null);
     const [view, setView] = useState({ type: 'home' });
     const { isDark } = useThemeMode();
+    const location = useLocation();
+    const navigate = useNavigate();
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     
     // Detect landscape vs portrait orientation using aspect ratio
     const isLandscape = useMediaQuery('(min-aspect-ratio: 4/3)');
+    const panelView = isLandscape ? 'grid' : 'list';
 
-    const { cardGroups, cardIdLookup, cards, loading, dataReady, error, dataSource, metadata } = useCardData();
+    const { cardGroups, cardIdLookup, cards, dataReady, error } = useCardData();
     
     // Create unique card options that include all editions
     const cardOptions = cards.map(card => ({
@@ -32,6 +36,15 @@ const Home = () => {
     }));
 
     const tradeState = useTradeState(cardGroups, cardIdLookup);
+
+    // Load a trade selected from /history once the catalog is ready.
+    useEffect(() => {
+        if (location.state?.loadTrade && tradeState.loadTradeFromHistory && dataReady) {
+            tradeState.loadTradeFromHistory(location.state.loadTrade);
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when history navigates in
+    }, [location.state?.loadTrade, dataReady]);
 
     // Build sets list for navigation drawer (ordered by set number ascending = newest first)
     const sets = useMemo(() => {
@@ -124,8 +137,8 @@ const Home = () => {
                     flexDirection: isLandscape ? 'row' : 'column',
                     width: '100%',
                     minHeight: 0,
-                    gap: isLandscape ? 2 : 0,
-                    p: isLandscape ? 2 : 0
+                    gap: isLandscape ? 1.25 : 0,
+                    p: isLandscape ? 1.25 : 0
                 }}>
                     <CardPanel
                         title="Cards I Have"
@@ -141,6 +154,7 @@ const Home = () => {
                         totalColor="primary"
                         disabled={!dataReady}
                         isLandscape={isLandscape}
+                        viewMode={panelView}
                     />
 
                     {(tradeState.haveList.length >= 0 || tradeState.wantList.length >= 0) && (
@@ -153,6 +167,7 @@ const Home = () => {
                             isLandscape={isLandscape}
                             generateShareURL={tradeState.generateShareURL}
                             clearURLTradeData={tradeState.clearURLTradeData}
+                            clearTrade={tradeState.clearTrade}
                             getURLSizeInfo={tradeState.getURLSizeInfo}
                             testURLRoundTrip={tradeState.testURLRoundTrip}
                             urlTradeData={tradeState.urlTradeData}
@@ -176,6 +191,7 @@ const Home = () => {
                         totalColor="success"
                         disabled={!dataReady}
                         isLandscape={isLandscape}
+                        viewMode={panelView}
                     />
                 </Box>
             )}

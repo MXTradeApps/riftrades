@@ -10,6 +10,7 @@ import {
     testURLEncoding
 } from "../utils/urlEncoding.js";
 import { loadTradeDraft, saveTradeDraft } from "../utils/tradeDraft.js";
+import { normalizeTradeList } from "../utils/tradeItems.js";
 
 export function useTradeState(cardGroups, cardIdLookup = {}) {
     const [haveList, setHaveList] = useState([]);
@@ -217,11 +218,64 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
         }
     };
 
+    const clearTrade = () => {
+        setHaveList([]);
+        setWantList([]);
+        setHaveInput('');
+        setWantInput('');
+        clearTradeFromURL();
+        setUrlTradeData(null);
+        setHasLoadedFromURL(false);
+    };
+
     // Clear URL trade data
     const clearURLTradeData = () => {
         clearTradeFromURL();
         setUrlTradeData(null);
         setHasLoadedFromURL(false);
+    };
+
+    const loadTradeFromHistory = (trade) => {
+        if (!trade) return;
+
+        const reconstructFromHistory = (cardList) => {
+            return normalizeTradeList(cardList).map((savedCard) => {
+                const cardGroup = getCardGroup(savedCard.name);
+                if (!cardGroup || !cardGroup.editions?.length) {
+                    console.warn(`Card not found or has no editions: ${savedCard.name}`);
+                    return null;
+                }
+
+                let selectedEdition = cardGroup.editions[0];
+                if (savedCard.subTypeName) {
+                    const editionByType = cardGroup.editions.find(
+                        (e) => e.subTypeName === savedCard.subTypeName,
+                    );
+                    if (editionByType) selectedEdition = editionByType;
+                }
+                if (savedCard.uniqueId) {
+                    const editionById = cardGroup.editions.find(
+                        (e) => e.uniqueId === savedCard.uniqueId,
+                    );
+                    if (editionById) selectedEdition = editionById;
+                }
+
+                return {
+                    name: cardGroup.name,
+                    price: selectedEdition.cardPrice,
+                    quantity: savedCard.quantity || 1,
+                    cardGroup,
+                    availableEditions: cardGroup.editions,
+                    subTypeName: selectedEdition.subTypeName || 'Normal',
+                    uniqueId: selectedEdition.uniqueId,
+                    imageUrl: savedCard.imageUrl || selectedEdition.imageUrl || '',
+                };
+            }).filter(Boolean);
+        };
+
+        setHaveList(reconstructFromHistory(trade.have_list));
+        setWantList(reconstructFromHistory(trade.want_list));
+        clearURLTradeData();
     };
 
     // Get URL size estimation
@@ -256,9 +310,11 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
         diff,
         generateShareURL,
         clearURLTradeData,
+        clearTrade,
         getURLSizeInfo,
         testURLRoundTrip,
         urlTradeData,
-        hasLoadedFromURL
+        hasLoadedFromURL,
+        loadTradeFromHistory,
     };
 }
