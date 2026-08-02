@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { formatTimestamp } from "../../utils/helpers.js";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
+import LoginButton from "../auth/LoginButton.jsx";
 
 const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' }, onNavigate }) => {
     const { isDark, toggleMode } = useThemeMode();
@@ -118,20 +119,23 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                         </Typography>
                     </Box>
 
-                    {/* Dark mode toggle */}
-                    <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-                        <IconButton
-                            onClick={toggleMode}
-                            sx={{
-                                color: '#d4a853',
-                                '&:hover': {
-                                    backgroundColor: 'rgba(212, 168, 83, 0.15)',
-                                }
-                            }}
-                        >
-                            {isDark ? <LightMode /> : <DarkMode />}
-                        </IconButton>
-                    </Tooltip>
+                    {/* Theme toggle + sign-in */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                        <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                            <IconButton
+                                onClick={toggleMode}
+                                sx={{
+                                    color: '#d4a853',
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(212, 168, 83, 0.15)',
+                                    }
+                                }}
+                            >
+                                {isDark ? <LightMode /> : <DarkMode />}
+                            </IconButton>
+                        </Tooltip>
+                        <LoginButton />
+                    </Box>
                 </Toolbar>
             </AppBar>
 
