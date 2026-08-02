@@ -150,6 +150,7 @@ const TradeHistory = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: '100vh',
+                pb: '28px',
                 background: bgGradient,
                 backgroundAttachment: 'fixed'
             }}>
@@ -206,6 +207,7 @@ const TradeHistory = () => {
             display: 'flex',
             flexDirection: 'column',
             minHeight: '100vh',
+            pb: '28px',
             background: bgGradient,
             backgroundAttachment: 'fixed'
         }}>

@@ -278,6 +278,7 @@ const SharedBinder = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: '100vh',
+                pb: '28px',
                 background: bgGradient,
                 backgroundAttachment: 'fixed',
             }}

@@ -52,6 +52,10 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
             }
             selectedEdition = selectedEdition || cardGroup.editions[0];
 
+            const matchedCard = savedCard.uniqueId
+                ? cardIdLookup[savedCard.uniqueId]
+                : null;
+
             return {
                 name: cardGroup.name,
                 price: selectedEdition.cardPrice,
@@ -60,7 +64,7 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                 availableEditions: cardGroup.editions,
                 subTypeName: selectedEdition.subTypeName || 'Normal',
                 uniqueId: selectedEdition.uniqueId,
-                imageUrl: selectedEdition.imageUrl || '',
+                imageUrl: selectedEdition.imageUrl || matchedCard?.imageUrl || '',
             };
         }).filter(Boolean);
     };
@@ -118,7 +122,7 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                     quantity: 1,
                     subTypeName: subTypeName,
                     uniqueId: selectedCard ? selectedCard._uniqueId : edition.uniqueId,
-                    imageUrl: selectedCard ? selectedCard.imageUrl : ''
+                    imageUrl: selectedCard?.imageUrl || edition.imageUrl || '',
                 }
             ]);
             inputSetter("");
@@ -144,6 +148,8 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                 const cardGroup = getCardGroup(card.name);
                 if (cardGroup) {
                     const edition = cardGroup.editions.find(
+                        e => e.uniqueId === card.uniqueId
+                    ) || cardGroup.editions.find(
                         e => e.subTypeName === card.subTypeName
                     ) || cardGroup.editions[0];
 
@@ -151,7 +157,8 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                         ...card,
                         price: edition.cardPrice,
                         availableEditions: cardGroup.editions,
-                        cardGroup
+                        cardGroup,
+                        imageUrl: card.imageUrl || edition.imageUrl || '',
                     };
                 }
                 return card;
@@ -260,6 +267,10 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                     if (editionById) selectedEdition = editionById;
                 }
 
+                const matchedCard = savedCard.uniqueId
+                    ? cardIdLookup[savedCard.uniqueId]
+                    : null;
+
                 return {
                     name: cardGroup.name,
                     price: selectedEdition.cardPrice,
@@ -268,7 +279,10 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                     availableEditions: cardGroup.editions,
                     subTypeName: selectedEdition.subTypeName || 'Normal',
                     uniqueId: selectedEdition.uniqueId,
-                    imageUrl: savedCard.imageUrl || selectedEdition.imageUrl || '',
+                    imageUrl: savedCard.imageUrl
+                        || selectedEdition.imageUrl
+                        || matchedCard?.imageUrl
+                        || '',
                 };
             }).filter(Boolean);
         };

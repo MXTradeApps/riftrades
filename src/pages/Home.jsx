@@ -90,7 +90,7 @@ const Home = () => {
             <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                height: '100vh', 
+                height: 'calc(100vh - 28px)', 
                 alignItems: 'center', 
                 justifyContent: 'center',
                 background: bgGradient
@@ -112,7 +112,7 @@ const Home = () => {
         <Box sx={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            height: '100vh', 
+            height: 'calc(100vh - 28px)', 
             width: '100%',
             overflow: isLandscape ? 'hidden' : 'auto',
             background: bgGradient,

@@ -520,6 +520,7 @@ const BinderCollection = ({ isWanted = false }) => {
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: '100vh',
+                    pb: '28px',
                     background: bgGradient,
                     backgroundAttachment: 'fixed',
                 }}
@@ -577,6 +578,7 @@ const BinderCollection = ({ isWanted = false }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: '100vh',
+                pb: '28px',
                 background: bgGradient,
                 backgroundAttachment: 'fixed',
             }}

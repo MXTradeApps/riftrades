@@ -349,7 +349,9 @@ export function reconstructCardsFromURLData(cardData, cardGroups, cardIdLookup =
                 quantity: Math.max(1, parseInt(cardQuantity) || 1),
                 cardGroup,
                 availableEditions: cardGroup.editions,
-                uniqueId: selectedEdition.uniqueId
+                uniqueId: selectedEdition.uniqueId,
+                subTypeName: selectedEdition.subTypeName || 'Normal',
+                imageUrl: selectedEdition.imageUrl || cardData?.imageUrl || '',
             };
 
             validCards.push(reconstructedCard);

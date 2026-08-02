@@ -131,8 +131,9 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                     <Box
                         sx={{
                             display: 'flex',
-                            flexDirection: 'column',
                             alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.75,
                             flexGrow: 1,
                             minWidth: 0,
                             cursor: currentView.type !== 'home' || location.pathname !== '/'
@@ -148,6 +149,18 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                             }
                         }}
                     >
+                        <Box
+                            component="img"
+                            src="/app_icon.png"
+                            alt="RiftTrades"
+                            sx={{
+                                width: { xs: 24, sm: 28 },
+                                height: { xs: 24, sm: 28 },
+                                borderRadius: 1,
+                                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.25)',
+                                flexShrink: 0,
+                            }}
+                        />
                         <Typography
                             variant="h4"
                             sx={{
@@ -161,23 +174,7 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                                 lineHeight: 1.2,
                             }}
                         >
-                            ⚔️ Riftrades
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            sx={{
-                                fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                                mt: 0.25,
-                                opacity: 0.9,
-                                fontWeight: 500,
-                                color: '#a0c4d4',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                maxWidth: '100%',
-                            }}
-                        >
-                            Prices last updated: {lastUpdatedTimestamp ? formatTimestamp(lastUpdatedTimestamp) : 'Loading...'}
+                            RiftTrades
                         </Typography>
                     </Box>
 
@@ -201,6 +198,40 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                     </Box>
                 </Toolbar>
             </AppBar>
+
+            <Box
+                component="footer"
+                sx={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: (theme) => theme.zIndex.appBar,
+                    py: 0.5,
+                    px: 1.5,
+                    textAlign: 'center',
+                    borderTop: '1px solid',
+                    borderColor: isDark ? 'rgba(212, 168, 83, 0.25)' : 'rgba(26, 90, 122, 0.2)',
+                    background: isDark
+                        ? 'rgba(6, 24, 37, 0.92)'
+                        : 'rgba(232, 244, 248, 0.94)',
+                    backdropFilter: 'blur(8px)',
+                }}
+            >
+                <Typography
+                    sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: 500,
+                        color: isDark ? '#a0c4d4' : '#1a4a6e',
+                        opacity: 0.9,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                    }}
+                >
+                    Prices last updated: {lastUpdatedTimestamp ? formatTimestamp(lastUpdatedTimestamp) : 'Loading...'}
+                </Typography>
+            </Box>
 
             <Drawer
                 anchor="left"

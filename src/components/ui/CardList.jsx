@@ -9,14 +9,10 @@ import {
     FormControl,
     Box,
     Typography,
-    useTheme,
-    useMediaQuery
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
 import { formatCurrency } from "../../utils/helpers.js";
 import { getCardGradient } from "../../utils/searchUtils.js";
-import { SearchInput, SearchDialog } from "../search";
 import { usePriceType } from "../../contexts/PriceContext.jsx";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
 import { CardThumbnail, CardImageModal } from "./CardImagePreview.jsx";
@@ -25,20 +21,9 @@ const CardList = ({
     cards, 
     onRemoveCard, 
     onUpdateQuantity, 
-    isMobile, 
-    cardOptions, 
-    allCards = [],
-    inputValue, 
-    onInputChange, 
-    onAddCard, 
-    title,
-    disabled = false,
     viewMode = 'list',
     isLandscape = false,
 }) => {
-    const theme = useTheme();
-    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-    const [searchDialogOpen, setSearchDialogOpen] = useState(false);
     const [imageModalOpen, setImageModalOpen] = useState(false);
     const [selectedCard, setSelectedCard] = useState(null);
     const { priceSource } = usePriceType();
@@ -60,22 +45,6 @@ const CardList = ({
     const handleQuantityChange = (cardIndex, newQuantity) => {
         if (onUpdateQuantity) {
             onUpdateQuantity(cardIndex, newQuantity);
-        }
-    };
-
-    const handleSearchClick = () => {
-        if (isSmallScreen) {
-            setSearchDialogOpen(true);
-        }
-    };
-
-    const handleDialogClose = () => {
-        setSearchDialogOpen(false);
-    };
-
-    const handleDialogAddCard = (card) => {
-        if (card) {
-            onAddCard(card);
         }
     };
 
@@ -143,62 +112,6 @@ const CardList = ({
             minHeight: 0,
             width: '100%'
         }}>
-            <Box sx={{
-                flexShrink: 0,
-                mb: 1,
-                border: isDark 
-                    ? '2px dashed rgba(58, 154, 186, 0.3)' 
-                    : '2px dashed rgba(26, 90, 122, 0.2)',
-                borderRadius: 2,
-                backgroundColor: isDark ? 'rgba(13, 48, 80, 0.6)' : 'rgba(255, 255, 255, 0.6)',
-                p: { xs: 1, sm: 1.25, md: 1.5, lg: 1.75, xl: 2 },
-                width: '100%',
-                transition: 'all 0.25s ease',
-                '&:hover': {
-                    backgroundColor: isDark ? 'rgba(13, 48, 80, 0.8)' : '#ffffff',
-                    borderColor: '#d4a853',
-                    boxShadow: '0 2px 8px rgba(212, 168, 83, 0.15)'
-                }
-            }}>
-                {isSmallScreen ? (
-                    <Box
-                        onClick={handleSearchClick}
-                        sx={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            p: 1.5,
-                            border: isDark ? '1px solid rgba(58, 154, 186, 0.3)' : '1px solid #c0dce8',
-                            borderRadius: 1,
-                            backgroundColor: isDark ? '#0a2540' : '#e8f4f8',
-                            cursor: 'pointer',
-                            '&:hover': {
-                                backgroundColor: isDark ? '#0d3050' : '#d0e8f0'
-                            },
-                            transition: 'background-color 0.2s ease'
-                        }}
-                    >
-                        <SearchIcon sx={{ color: isDark ? '#a0c4d4' : '#1a5a7a' }} />
-                        <Typography variant="body1" sx={{ color: isDark ? '#a0c4d4' : '#1a4a6e' }}>
-                            Search for cards...
-                        </Typography>
-                    </Box>
-                ) : (
-                    <SearchInput
-                        label="Search for Cards"
-                        placeholder="Type to search..."
-                        items={cardOptions || []}
-                        value={inputValue || ""}
-                        onChange={onInputChange}
-                        onSelect={onAddCard}
-                        disabled={disabled}
-                        fullWidth
-                        placement="bottom"
-                    />
-                )}
-            </Box>
-
             <Box sx={{
                 flexGrow: 1,
                 overflow: 'auto',
@@ -498,14 +411,6 @@ const CardList = ({
                 )}
             </Box>
         </Box>
-
-        <SearchDialog
-            open={searchDialogOpen}
-            onClose={handleDialogClose}
-            title={`Search Cards for ${title}`}
-            items={cardOptions || []}
-            onSelect={handleDialogAddCard}
-        />
 
         <CardImageModal
             open={imageModalOpen}
