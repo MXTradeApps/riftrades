@@ -1,14 +1,15 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { calculateTotal, calculateDiff } from "../utils/trade.js";
-import { 
-    decodeTradeFromURL, 
-    encodeTradeToURL, 
+import {
+    decodeTradeFromURL,
+    encodeTradeToURL,
     reconstructCardsFromURLData,
     hasTradeDataInURL,
     clearTradeFromURL,
     estimateTradeURLSize,
     testURLEncoding
 } from "../utils/urlEncoding.js";
+import { loadTradeDraft, saveTradeDraft } from "../utils/tradeDraft.js";
 
 export function useTradeState(cardGroups, cardIdLookup = {}) {
     const [haveList, setHaveList] = useState([]);
@@ -17,13 +18,55 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
     const [wantInput, setWantInput] = useState("");
     const [urlTradeData, setUrlTradeData] = useState(null);
     const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false);
+    const [draftReady, setDraftReady] = useState(false);
+    const skipNextPersist = useRef(false);
 
     const getCardGroup = (cardName) =>
         cardGroups.find(group => group.name === cardName) || null;
 
+    const reconstructFromDraftList = (cardList) => {
+        return (cardList || []).map((savedCard) => {
+            let cardGroup = null;
+            let selectedEdition = null;
+
+            if (savedCard.uniqueId && cardIdLookup[savedCard.uniqueId]) {
+                const matched = cardIdLookup[savedCard.uniqueId];
+                cardGroup = getCardGroup(matched.displayName || matched.name);
+                if (cardGroup) {
+                    selectedEdition = cardGroup.editions.find(
+                        (e) => e.uniqueId === savedCard.uniqueId,
+                    ) || null;
+                }
+            }
+
+            if (!cardGroup) {
+                cardGroup = getCardGroup(savedCard.name);
+            }
+            if (!cardGroup || !cardGroup.editions?.length) return null;
+
+            if (!selectedEdition && savedCard.subTypeName) {
+                selectedEdition = cardGroup.editions.find(
+                    (e) => e.subTypeName === savedCard.subTypeName,
+                ) || null;
+            }
+            selectedEdition = selectedEdition || cardGroup.editions[0];
+
+            return {
+                name: cardGroup.name,
+                price: selectedEdition.cardPrice,
+                quantity: Math.max(1, Math.min(6, Number(savedCard.quantity) || 1)),
+                cardGroup,
+                availableEditions: cardGroup.editions,
+                subTypeName: selectedEdition.subTypeName || 'Normal',
+                uniqueId: selectedEdition.uniqueId,
+                imageUrl: selectedEdition.imageUrl || '',
+            };
+        }).filter(Boolean);
+    };
+
     const addCard = (list, setList, cardNameOrObject, inputSetter) => {
         let cardName, selectedCard;
-        
+
         if (typeof cardNameOrObject === 'object' && cardNameOrObject !== null) {
             cardName = cardNameOrObject.label;
             selectedCard = cardNameOrObject.card;
@@ -63,7 +106,7 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                 edition = cardGroup.editions[0];
                 subTypeName = edition.subTypeName || 'Normal';
             }
-            
+
             setList([
                 ...list,
                 {
@@ -102,7 +145,7 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
                     const edition = cardGroup.editions.find(
                         e => e.subTypeName === card.subTypeName
                     ) || cardGroup.editions[0];
-                    
+
                     return {
                         ...card,
                         price: edition.cardPrice,
@@ -118,28 +161,51 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
         setWantList(prevList => updateListPrices(prevList));
     }, [cardGroups]);
 
-    // Load trade data from URL when cardGroups are available
+    // Load trade data from URL, else hydrate the local draft, once catalog is ready.
     useEffect(() => {
-        if (cardGroups.length > 0 && !hasLoadedFromURL && hasTradeDataInURL()) {
+        if (cardGroups.length === 0 || draftReady) return;
+
+        if (!hasLoadedFromURL && hasTradeDataInURL()) {
             const tradeData = decodeTradeFromURL();
             if (tradeData) {
                 setUrlTradeData(tradeData);
-                
+
                 const reconstructedHave = reconstructCardsFromURLData(tradeData.have, cardGroups, cardIdLookup);
                 const reconstructedWant = reconstructCardsFromURLData(tradeData.want, cardGroups, cardIdLookup);
-                
+
+                skipNextPersist.current = false;
                 setHaveList(reconstructedHave);
                 setWantList(reconstructedWant);
                 setHasLoadedFromURL(true);
-                
+                setDraftReady(true);
+
                 console.log(`Loaded trade from URL: ${reconstructedHave.length} have, ${reconstructedWant.length} want`);
-                
+
                 if (tradeData.ageInDays && tradeData.ageInDays > 7) {
                     console.warn(`Trade data is ${Math.round(tradeData.ageInDays)} days old`);
                 }
+                return;
             }
         }
-    }, [cardGroups, cardIdLookup, hasLoadedFromURL]);
+
+        const draft = loadTradeDraft();
+        if (draft && (draft.have.length > 0 || draft.want.length > 0)) {
+            skipNextPersist.current = true;
+            setHaveList(reconstructFromDraftList(draft.have));
+            setWantList(reconstructFromDraftList(draft.want));
+        }
+        setDraftReady(true);
+    }, [cardGroups, cardIdLookup, hasLoadedFromURL, draftReady]);
+
+    // Keep the draft in sync so Shared Binder → Calculator navigation retains cards.
+    useEffect(() => {
+        if (!draftReady) return;
+        if (skipNextPersist.current) {
+            skipNextPersist.current = false;
+            return;
+        }
+        saveTradeDraft(haveList, wantList);
+    }, [haveList, wantList, draftReady]);
 
     // Generate shareable URL
     const generateShareURL = () => {
@@ -196,8 +262,3 @@ export function useTradeState(cardGroups, cardIdLookup = {}) {
         hasLoadedFromURL
     };
 }
-
-
-
-
-
