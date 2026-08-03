@@ -168,10 +168,15 @@ const PrivacyPolicy = () => {
                     </Section>
 
                     <Section title="Cookies & Analytics">
-                        Riftrades does not use tracking cookies for advertising. If analytics are
-                        used, they are limited to aggregate, anonymized metrics that help us
-                        understand how the site is used and cannot be used to identify you
-                        individually.
+                        Riftrades does not use tracking cookies for advertising. We use PostHog,
+                        a first-party product analytics service, to understand how the site is
+                        used — for example pages viewed, sign-in, trade calculator actions,
+                        binder/want-list changes, and trade history. We do not use this data for
+                        advertising or to track you across other companies&apos; apps or websites.
+                        See{' '}
+                        <a href="https://posthog.com/privacy" target="_blank" rel="noopener noreferrer">
+                            PostHog&apos;s privacy policy
+                        </a>.
                     </Section>
 
                     <Section title="Children's Privacy">

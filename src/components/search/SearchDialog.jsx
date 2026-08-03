@@ -21,7 +21,9 @@ const SearchDialog = ({
     onClose,
     title = 'Search',
     items = [],
-    onSelect
+    onSelect,
+    keepOpenOnSelect = false,
+    keepInputOnSelect = false,
 }) => {
     const { isDark } = useThemeMode();
     const [searchValue, setSearchValue] = useState('');
@@ -35,8 +37,12 @@ const SearchDialog = ({
 
     const handleSelect = (item) => {
         onSelect?.(item);
-        setSearchValue('');
-        onClose();
+        if (!keepInputOnSelect) {
+            setSearchValue('');
+        }
+        if (!keepOpenOnSelect) {
+            onClose();
+        }
     };
 
     return (
@@ -96,6 +102,8 @@ const SearchDialog = ({
                     fullWidth
                     placement="bottom"
                     autoFocus
+                    keepOpenOnSelect={keepOpenOnSelect}
+                    keepInputOnSelect={keepInputOnSelect}
                 />
                 
                 <Box sx={{ mt: 3, px: 1 }}>

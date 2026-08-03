@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar,
     Toolbar,
     Typography,
     Box,
     IconButton,
+    Button,
     Tooltip,
     Drawer,
     List,
@@ -22,25 +23,52 @@ import {
     Close as CloseIcon,
     Home as HomeIcon,
     LocalOffer as SetIcon,
-    PrivacyTip as PrivacyIcon
+    PrivacyTip as PrivacyIcon,
+    CollectionsBookmark as BinderIcon,
+    FavoriteBorder as WantIcon,
+    History as HistoryIcon,
 } from '@mui/icons-material';
 import { formatTimestamp } from "../../utils/helpers.js";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
+import LoginButton from "../auth/LoginButton.jsx";
 
 const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' }, onNavigate }) => {
     const { isDark, toggleMode } = useThemeMode();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleNavigate = (view) => {
         setDrawerOpen(false);
-        if (onNavigate) onNavigate(view);
+        if (location.pathname !== '/') {
+            navigate('/');
+        }
+        // Defer so Home mounts before view change when coming from another route.
+        if (onNavigate) {
+            setTimeout(() => onNavigate(view), 0);
+        }
     };
 
     const handleRoute = (path) => {
         setDrawerOpen(false);
         navigate(path);
     };
+
+    const navButtonSx = (active) => ({
+        display: { xs: 'none', sm: 'inline-flex' },
+        color: active ? '#ffffff' : '#d4a853',
+        fontWeight: active ? 700 : 600,
+        fontSize: '0.875rem',
+        textTransform: 'none',
+        minWidth: 0,
+        px: 1,
+        py: 0.35,
+        whiteSpace: 'nowrap',
+        backgroundColor: active ? 'rgba(212, 168, 83, 0.25)' : 'transparent',
+        '&:hover': {
+            backgroundColor: 'rgba(212, 168, 83, 0.15)',
+        },
+    });
 
     return (
         <>
@@ -49,93 +77,181 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                 elevation={0}
                 sx={{
                     background: 'linear-gradient(135deg, #0a2540 0%, #0d3050 50%, #1a4a6e 100%)',
-                    borderBottom: '3px solid #d4a853',
-                    boxShadow: '0 4px 20px rgba(10, 37, 64, 0.5)'
+                    borderBottom: '2px solid #d4a853',
+                    boxShadow: '0 2px 10px rgba(10, 37, 64, 0.45)'
                 }}
             >
-                <Toolbar sx={{
-                    px: { xs: 1, sm: 2, md: 3 },
-                    py: { xs: 1, sm: 1.25, md: 1.75 },
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    {/* Hamburger menu */}
-                    <Tooltip title="Browse sets">
-                        <IconButton
-                            onClick={() => setDrawerOpen(true)}
-                            sx={{
-                                color: '#d4a853',
-                                width: 40,
-                                height: 40,
-                                '&:hover': {
-                                    backgroundColor: 'rgba(212, 168, 83, 0.15)',
-                                }
-                            }}
-                        >
-                            <MenuIcon />
-                        </IconButton>
-                    </Tooltip>
-
-                    {/* Center content */}
+                <Toolbar
+                    variant="dense"
+                    sx={{
+                        position: 'relative',
+                        px: { xs: 0.75, sm: 1.5, md: 2 },
+                        py: 0.5,
+                        minHeight: { xs: 48, sm: 52 },
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                    }}
+                >
                     <Box sx={{
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
-                        flexGrow: 1,
-                        cursor: currentView.type !== 'home' ? 'pointer' : 'default'
-                    }}
+                        gap: 0.25,
+                        minWidth: 0,
+                        flexShrink: 1,
+                        zIndex: 1,
+                    }}>
+                        <Tooltip title="Menu">
+                            <IconButton
+                                onClick={() => setDrawerOpen(true)}
+                                size="small"
+                                sx={{
+                                    color: '#d4a853',
+                                    p: 0.75,
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(212, 168, 83, 0.15)',
+                                    }
+                                }}
+                            >
+                                <MenuIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <Button
+                            component={Link}
+                            to="/"
+                            size="small"
+                            onClick={() => onNavigate?.({ type: 'home' })}
+                            sx={navButtonSx(location.pathname === '/' && currentView.type === 'home')}
+                        >
+                            Trade Calculator
+                        </Button>
+                        <Button
+                            component={Link}
+                            to="/binder"
+                            size="small"
+                            sx={navButtonSx(location.pathname === '/binder')}
+                        >
+                            My Binder
+                        </Button>
+                    </Box>
+
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.75,
+                            pointerEvents: 'auto',
+                            zIndex: 0,
+                            cursor: currentView.type !== 'home' || location.pathname !== '/'
+                                ? 'pointer'
+                                : 'default'
+                        }}
                         onClick={() => {
-                            if (currentView.type !== 'home' && onNavigate) onNavigate({ type: 'home' });
+                            if (location.pathname !== '/') {
+                                navigate('/');
+                            }
+                            if (currentView.type !== 'home' && onNavigate) {
+                                onNavigate({ type: 'home' });
+                            }
                         }}
                     >
+                        <Box
+                            component="img"
+                            src="/app_icon.png"
+                            alt="RiftTrades"
+                            sx={{
+                                width: { xs: 24, sm: 28 },
+                                height: { xs: 24, sm: 28 },
+                                borderRadius: 1,
+                                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.25)',
+                                flexShrink: 0,
+                            }}
+                        />
                         <Typography
                             variant="h4"
                             sx={{
                                 fontWeight: 800,
-                                fontSize: { xs: '1.4rem', sm: '1.75rem', md: '2rem' },
+                                fontSize: { xs: '1.1rem', sm: '1.35rem', md: '1.6rem' },
                                 background: 'linear-gradient(135deg, #e5c078 0%, #d4a853 50%, #b8892e 100%)',
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
                                 backgroundClip: 'text',
                                 letterSpacing: '0.02em',
-                                textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+                                lineHeight: 1.2,
+                                whiteSpace: 'nowrap',
                             }}
                         >
-                            ⚔️ Riftrades
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            sx={{
-                                fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                                mt: 0.5,
-                                opacity: 0.9,
-                                fontWeight: 500,
-                                color: '#a0c4d4'
-                            }}
-                        >
-                            Prices last updated: {lastUpdatedTimestamp ? formatTimestamp(lastUpdatedTimestamp) : 'Loading...'}
+                            RiftTrades
                         </Typography>
                     </Box>
 
-                    {/* Dark mode toggle */}
-                    <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-                        <IconButton
-                            onClick={toggleMode}
-                            sx={{
-                                color: '#d4a853',
-                                '&:hover': {
-                                    backgroundColor: 'rgba(212, 168, 83, 0.15)',
-                                }
-                            }}
-                        >
-                            {isDark ? <LightMode /> : <DarkMode />}
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        flexShrink: 0,
+                        zIndex: 1,
+                        ml: 'auto',
+                    }}>
+                        <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+                            <IconButton
+                                onClick={toggleMode}
+                                size="small"
+                                sx={{
+                                    color: '#d4a853',
+                                    p: 0.75,
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(212, 168, 83, 0.15)',
+                                    }
+                                }}
+                            >
+                                {isDark ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
+                            </IconButton>
+                        </Tooltip>
+                        <LoginButton />
+                    </Box>
                 </Toolbar>
             </AppBar>
 
-            {/* Navigation Drawer */}
+            <Box
+                component="footer"
+                sx={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: (theme) => theme.zIndex.appBar,
+                    py: 0.5,
+                    px: 1.5,
+                    textAlign: 'center',
+                    borderTop: '1px solid',
+                    borderColor: isDark ? 'rgba(212, 168, 83, 0.25)' : 'rgba(26, 90, 122, 0.2)',
+                    background: isDark
+                        ? 'rgba(6, 24, 37, 0.92)'
+                        : 'rgba(232, 244, 248, 0.94)',
+                    backdropFilter: 'blur(8px)',
+                }}
+            >
+                <Typography
+                    sx={{
+                        fontSize: '0.7rem',
+                        fontWeight: 500,
+                        color: isDark ? '#a0c4d4' : '#1a4a6e',
+                        opacity: 0.9,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                    }}
+                >
+                    Prices last updated: {lastUpdatedTimestamp ? formatTimestamp(lastUpdatedTimestamp) : 'Loading...'}
+                </Typography>
+            </Box>
+
             <Drawer
                 anchor="left"
                 open={drawerOpen}
@@ -150,7 +266,6 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                     }
                 }}
             >
-                {/* Drawer header */}
                 <Box sx={{
                     px: 2.5,
                     py: 2,
@@ -181,16 +296,13 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
 
                 <List sx={{ py: 1 }}>
                     <ListItemButton
-                        selected={currentView.type === 'home'}
+                        selected={location.pathname === '/' && currentView.type === 'home'}
                         onClick={() => handleNavigate({ type: 'home' })}
                         sx={{
                             mx: 1,
                             borderRadius: 2,
                             '&.Mui-selected': {
                                 backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                                '&:hover': {
-                                    backgroundColor: isDark ? 'rgba(212, 168, 83, 0.2)' : 'rgba(26, 90, 122, 0.15)'
-                                }
                             }
                         }}
                     >
@@ -207,17 +319,77 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                     </ListItemButton>
 
                     <ListItemButton
-                        onClick={() => handleRoute('/privacy')}
+                        selected={location.pathname === '/binder'}
+                        onClick={() => handleRoute('/binder')}
                         sx={{
                             mx: 1,
                             borderRadius: 2,
                             '&.Mui-selected': {
                                 backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                                '&:hover': {
-                                    backgroundColor: isDark ? 'rgba(212, 168, 83, 0.2)' : 'rgba(26, 90, 122, 0.15)'
-                                }
                             }
                         }}
+                    >
+                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
+                            <BinderIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="My Binder"
+                            primaryTypographyProps={{
+                                fontWeight: 600,
+                                color: isDark ? '#e8f4f8' : '#0a2540'
+                            }}
+                        />
+                    </ListItemButton>
+
+                    <ListItemButton
+                        selected={location.pathname === '/wants'}
+                        onClick={() => handleRoute('/wants')}
+                        sx={{
+                            mx: 1,
+                            borderRadius: 2,
+                            '&.Mui-selected': {
+                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
+                            }
+                        }}
+                    >
+                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
+                            <WantIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="Want List"
+                            primaryTypographyProps={{
+                                fontWeight: 600,
+                                color: isDark ? '#e8f4f8' : '#0a2540'
+                            }}
+                        />
+                    </ListItemButton>
+
+                    <ListItemButton
+                        selected={location.pathname === '/history'}
+                        onClick={() => handleRoute('/history')}
+                        sx={{
+                            mx: 1,
+                            borderRadius: 2,
+                            '&.Mui-selected': {
+                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
+                            }
+                        }}
+                    >
+                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
+                            <HistoryIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="Trade History"
+                            primaryTypographyProps={{
+                                fontWeight: 600,
+                                color: isDark ? '#e8f4f8' : '#0a2540'
+                            }}
+                        />
+                    </ListItemButton>
+
+                    <ListItemButton
+                        onClick={() => handleRoute('/privacy')}
+                        sx={{ mx: 1, borderRadius: 2 }}
                     >
                         <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
                             <PrivacyIcon />
@@ -273,9 +445,6 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                                     mb: 0.25,
                                     '&.Mui-selected': {
                                         backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                                        '&:hover': {
-                                            backgroundColor: isDark ? 'rgba(212, 168, 83, 0.2)' : 'rgba(26, 90, 122, 0.15)'
-                                        }
                                     }
                                 }}
                             >

@@ -12,18 +12,29 @@ import {
     DialogActions,
     ToggleButtonGroup,
     ToggleButton,
-    Snackbar
+    Snackbar,
+    TextField,
+    Alert,
+    FormControlLabel,
+    Checkbox,
 } from '@mui/material';
 import { 
     Warning as WarningIcon,
     Clear as ClearIcon,
-    AutoFixHigh as AutoFixHighIcon
+    AutoFixHigh as AutoFixHighIcon,
+    BookmarkAdd as BookmarkAddIcon,
+    CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { formatCurrency } from "../../utils/helpers.js";
 import { usePriceType } from "../../contexts/PriceContext.jsx";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
+import { useAuth } from "../../contexts/AuthContext.jsx";
 import FindFillerDialog from "./FindFillerDialog.jsx";
 import { FILLER_BALANCE_THRESHOLD } from "../../utils/findFiller.js";
+import { saveTradeToHistory } from "../../services/tradeHistory.js";
+import { confirmTrade } from "../../services/confirmTrade.js";
+import { FreeLimits } from "../../utils/freeLimits.js";
+import { capture } from "../../lib/analytics.js";
 
 const TradeSummary = ({ 
     haveList, 
@@ -33,6 +44,7 @@ const TradeSummary = ({
     diff, 
     isLandscape = false,
     clearURLTradeData,
+    clearTrade,
     urlTradeData,
     hasLoadedFromURL,
     onAddHaveCard,
@@ -40,11 +52,20 @@ const TradeSummary = ({
 }) => {
     const { priceType, setPriceType, priceSource, setPriceSource } = usePriceType();
     const { isDark } = useThemeMode();
+    const { user } = useAuth();
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [showFiller, setShowFiller] = useState(false);
-    const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [tradeName, setTradeName] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [removeGiven, setRemoveGiven] = useState(true);
+    const [addReceived, setAddReceived] = useState(true);
+    const [confirming, setConfirming] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     const isUnbalanced = Math.abs(diff) >= FILLER_BALANCE_THRESHOLD;
+    const canActOnTrade = haveList.length > 0 || wantList.length > 0;
 
     // Calculate total card count including quantities
     const getTotalCardCount = (cardList) => {
@@ -57,12 +78,14 @@ const TradeSummary = ({
     const handlePriceTypeChange = (event, newPriceType) => {
         if (newPriceType !== null) {
             setPriceType(newPriceType);
+            capture('price_type_changed', { price_type: newPriceType, price_source: priceSource });
         }
     };
 
     const handlePriceSourceChange = (event, newPriceSource) => {
         if (newPriceSource !== null) {
             setPriceSource(newPriceSource);
+            capture('price_source_changed', { price_source: newPriceSource, price_type: priceType });
         }
     };
 
@@ -80,8 +103,108 @@ const TradeSummary = ({
     };
 
     const handleClearTradeData = () => {
-        clearURLTradeData();
+        if (typeof clearTrade === 'function') {
+            clearTrade();
+        } else {
+            clearURLTradeData?.();
+            capture('trade_cleared', {
+                have_count: haveList.length,
+                want_count: wantList.length,
+                source: 'url_clear',
+            });
+        }
         setShowClearConfirm(false);
+    };
+
+    const handleOpenSaveDialog = () => {
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        setTradeName(`Trade ${today}`);
+        setShowSaveDialog(true);
+    };
+
+    const handleSaveTrade = async () => {
+        setSaving(true);
+        const { error, trimmed } = await saveTradeToHistory(tradeName, haveList, wantList, {
+            haveTotal,
+            wantTotal,
+            diff
+        });
+        setSaving(false);
+        if (error) {
+            setSnackbar({ open: true, message: error.message || 'Failed to save trade', severity: 'error' });
+            capture('trade_save_failed', { error_message: error.message || 'unknown' });
+            return;
+        }
+        capture('trade_saved', {
+            have_count: haveCardCount,
+            want_count: wantCardCount,
+            have_total: haveTotal,
+            want_total: wantTotal,
+            diff,
+            rolled_off: trimmed || 0,
+            signed_in: Boolean(user),
+        });
+        setShowSaveDialog(false);
+        setSnackbar(
+            trimmed > 0
+                ? {
+                    open: true,
+                    message: `Trade saved — your ${trimmed === 1 ? 'oldest trade' : `${trimmed} oldest trades`} `
+                        + `rolled off the free ${FreeLimits.savedTrades}-trade history`,
+                    severity: 'info',
+                }
+                : { open: true, message: 'Trade saved — find it under Trade History', severity: 'success' },
+        );
+    };
+
+    const handleOpenConfirmDialog = () => {
+        setRemoveGiven(haveCardCount > 0);
+        setAddReceived(wantCardCount > 0);
+        setShowConfirmDialog(true);
+    };
+
+    const handleConfirmTrade = async () => {
+        setConfirming(true);
+        const { error, trimmed } = await confirmTrade({
+            haveList,
+            wantList,
+            totals: { haveTotal, wantTotal, diff },
+            removeGivenFromBinder: removeGiven && haveCardCount > 0,
+            addReceivedToBinder: addReceived && wantCardCount > 0,
+        });
+        setConfirming(false);
+        if (error) {
+            setSnackbar({
+                open: true,
+                message: error.message || 'Failed to confirm trade',
+                severity: 'error',
+            });
+            capture('trade_confirm_failed', { error_message: error.message || 'unknown' });
+            return;
+        }
+        capture('trade_confirmed', {
+            have_count: haveCardCount,
+            want_count: wantCardCount,
+            have_total: haveTotal,
+            want_total: wantTotal,
+            diff,
+            remove_given: removeGiven && haveCardCount > 0,
+            add_received: addReceived && wantCardCount > 0,
+            rolled_off: trimmed || 0,
+        });
+        setShowConfirmDialog(false);
+        if (typeof clearTrade === 'function') {
+            clearTrade();
+        }
+        setSnackbar(
+            trimmed > 0
+                ? {
+                    open: true,
+                    message: `Trade confirmed. The free plan keeps your last ${FreeLimits.savedTrades} trades.`,
+                    severity: 'info',
+                }
+                : { open: true, message: 'Trade confirmed', severity: 'success' },
+        );
     };
 
     const formatAge = (ageInDays) => {
@@ -302,7 +425,14 @@ const TradeSummary = ({
                             size="small"
                             variant="contained"
                             startIcon={<AutoFixHighIcon sx={{ fontSize: '14px !important' }} />}
-                            onClick={() => setShowFiller(true)}
+                            onClick={() => {
+                                capture('filler_opened', {
+                                    have_count: haveCardCount,
+                                    want_count: wantCardCount,
+                                    diff,
+                                });
+                                setShowFiller(true);
+                            }}
                             sx={{
                                 textTransform: 'none',
                                 fontWeight: 700,
@@ -409,6 +539,70 @@ const TradeSummary = ({
                     </Typography>
                 </Box>
             )}
+
+            {/* Confirm / Save (signed-in only) */}
+            {user && (
+                <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 0.75,
+                    px: isLandscape ? 0.75 : { xs: 1, sm: 1.5 },
+                    py: isLandscape ? 0.75 : { xs: 0.4, sm: 0.6 },
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    borderTop: `1px solid ${isDark ? 'rgba(212, 168, 83, 0.2)' : 'rgba(26, 90, 122, 0.12)'}`
+                }}>
+                    <Tooltip title="Record the trade and update your Binder">
+                        <span>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<CheckCircleIcon />}
+                                onClick={handleOpenConfirmDialog}
+                                disabled={!canActOnTrade}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 700,
+                                    px: 1.5,
+                                    py: 0.25,
+                                    minHeight: 28,
+                                    background: 'linear-gradient(135deg, #1a5a7a 0%, #3a9aba 100%)',
+                                    boxShadow: '0 1px 4px rgba(10, 37, 64, 0.25)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #0d4560 0%, #1a5a7a 100%)',
+                                    },
+                                }}
+                            >
+                                Confirm Trade
+                            </Button>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title="Save this trade to your history without changing your Binder">
+                        <span>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<BookmarkAddIcon />}
+                                onClick={handleOpenSaveDialog}
+                                disabled={!canActOnTrade}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    px: 1.5,
+                                    py: 0.25,
+                                    minHeight: 28,
+                                    color: isDark ? '#e5c078' : '#1a5a7a',
+                                    borderColor: isDark ? 'rgba(212, 168, 83, 0.4)' : 'rgba(26, 90, 122, 0.35)',
+                                }}
+                            >
+                                Save
+                            </Button>
+                        </span>
+                    </Tooltip>
+                </Box>
+            )}
         </Box>
 
         {/* Clear Confirmation Dialog */}
@@ -438,18 +632,124 @@ const TradeSummary = ({
             onAdded={(card, fillSide) => {
                 setSnackbar({
                     open: true,
-                    message: `Added ${card.name} to ${fillSide === 'have' ? 'your' : 'their'} side`
+                    message: `Added ${card.name} to ${fillSide === 'have' ? 'your' : 'their'} side`,
+                    severity: 'success',
                 });
             }}
         />
 
+        <Dialog
+            open={showSaveDialog}
+            onClose={() => !saving && setShowSaveDialog(false)}
+            fullWidth
+            maxWidth="xs"
+        >
+            <DialogTitle>Save Trade</DialogTitle>
+            <DialogContent>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Name this trade so you can find it in your history.
+                </Typography>
+                <TextField
+                    autoFocus
+                    fullWidth
+                    label="Trade name"
+                    value={tradeName}
+                    onChange={(e) => setTradeName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && tradeName.trim() && !saving) {
+                            handleSaveTrade();
+                        }
+                    }}
+                    disabled={saving}
+                />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={() => setShowSaveDialog(false)} disabled={saving}>
+                    Cancel
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleSaveTrade}
+                    disabled={saving || !tradeName.trim()}
+                    startIcon={<BookmarkAddIcon />}
+                >
+                    {saving ? 'Saving…' : 'Save Trade'}
+                </Button>
+            </DialogActions>
+        </Dialog>
+
+        <Dialog
+            open={showConfirmDialog}
+            onClose={() => !confirming && setShowConfirmDialog(false)}
+            fullWidth
+            maxWidth="xs"
+        >
+            <DialogTitle>Confirm Trade</DialogTitle>
+            <DialogContent>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Giving {haveCardCount} {haveCardCount === 1 ? 'card' : 'cards'} ·
+                    {' '}Receiving {wantCardCount} {wantCardCount === 1 ? 'card' : 'cards'}
+                </Typography>
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked={removeGiven}
+                            onChange={(e) => setRemoveGiven(e.target.checked)}
+                            disabled={haveCardCount === 0 || confirming}
+                        />
+                    }
+                    label={`Remove my ${haveCardCount} given ${haveCardCount === 1 ? 'card' : 'cards'} from Binder`}
+                />
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked={addReceived}
+                            onChange={(e) => setAddReceived(e.target.checked)}
+                            disabled={wantCardCount === 0 || confirming}
+                        />
+                    }
+                    label={
+                        <Box>
+                            <Typography component="span" variant="body1">
+                                Add their {wantCardCount} {wantCardCount === 1 ? 'card' : 'cards'} to my Binder
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                                Uncheck for deck-bound pulls
+                            </Typography>
+                        </Box>
+                    }
+                />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={() => setShowConfirmDialog(false)} disabled={confirming}>
+                    Cancel
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleConfirmTrade}
+                    disabled={confirming}
+                    startIcon={<CheckCircleIcon />}
+                >
+                    {confirming ? 'Confirming…' : 'Confirm'}
+                </Button>
+            </DialogActions>
+        </Dialog>
+
         <Snackbar
             open={snackbar.open}
-            autoHideDuration={2000}
-            onClose={() => setSnackbar({ open: false, message: '' })}
-            message={snackbar.message}
+            autoHideDuration={3000}
+            onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        />
+        >
+            <Alert
+                onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+                severity={snackbar.severity || 'success'}
+                variant="filled"
+                sx={{ width: '100%' }}
+            >
+                {snackbar.message}
+            </Alert>
+        </Snackbar>
         </>
     );
 };

@@ -263,7 +263,8 @@ const groupCardsByEdition = (cards, priceType = 'market', priceSource = 'tcgplay
                 cardPrice: getCardPrice(card, priceSource, priceType),
                 uniqueId: card._uniqueId,
                 isFoil: card.isFoil,
-                hasCardmarket: card.cardmarketId !== null
+                hasCardmarket: card.cardmarketId !== null,
+                imageUrl: card.imageUrl || '',
             });
         }
     });
