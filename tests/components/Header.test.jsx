@@ -2,19 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Header from '../../src/components/elements/Header.jsx';
 
-const mockCards = [
-    { _setName: 'Origins', _setNumber: 1, extNumber: '001' },
-    { _setName: 'Origins', _setNumber: 1, extNumber: '002' },
-    { _setName: 'Spiritforged', _setNumber: 2, extNumber: '010' },
-];
-
-jest.mock('../../src/hooks/useCardData.jsx', () => ({
-    useCardData: () => ({
-        cards: mockCards,
-        dataReady: true,
-    }),
-}));
-
 jest.mock('../../src/contexts/ThemeContext.jsx', () => ({
     useThemeMode: () => ({
         isDark: true,
@@ -36,16 +23,14 @@ function renderHeader(initialPath = '/binder') {
 }
 
 describe('Header drawer', () => {
-    test('shows Browse Cards and loads sets on non-Home routes', () => {
+    test('links Browse Sets to /sets instead of embedding a sets list', () => {
         renderHeader('/binder');
 
         fireEvent.click(screen.getByRole('button', { name: /menu/i }));
 
-        expect(screen.getByText('Browse Cards')).toBeInTheDocument();
+        const browse = screen.getByRole('link', { name: /browse sets/i });
+        expect(browse).toHaveAttribute('href', '/sets');
         expect(screen.queryByText('Loading sets…')).not.toBeInTheDocument();
-        expect(screen.getByText('Sets · Most Expensive')).toBeInTheDocument();
-        expect(screen.getByText('Origins')).toBeInTheDocument();
-        expect(screen.getByText('Spiritforged')).toBeInTheDocument();
+        expect(screen.queryByText('Sets · Most Expensive')).not.toBeInTheDocument();
     });
 });
-

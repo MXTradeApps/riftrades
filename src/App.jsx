@@ -5,6 +5,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
 import BinderCollection from './pages/BinderCollection.jsx';
 import SharedBinder from './pages/SharedBinder.jsx';
 import TradeHistory from './pages/TradeHistory.jsx';
+import SetList from './pages/SetList.jsx';
+import SetDetail from './pages/SetDetail.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { EntitlementProvider } from './contexts/EntitlementContext.jsx';
 
@@ -14,6 +16,8 @@ function App() {
             <EntitlementProvider>
                 <Routes>
                     <Route path="/" element={<Home />} />
+                    <Route path="/sets" element={<SetList />} />
+                    <Route path="/sets/:setId" element={<SetDetail />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/binder" element={<BinderCollection isWanted={false} />} />
                     <Route path="/wants" element={<BinderCollection isWanted={true} />} />
