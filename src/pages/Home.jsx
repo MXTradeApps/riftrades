@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useCardData } from "../hooks/useCardData.jsx";
@@ -37,6 +37,14 @@ const Home = () => {
 
     const tradeState = useTradeState(cardGroups, cardIdLookup);
 
+    // Open a set (or home) when arriving from another route via the nav drawer.
+    useEffect(() => {
+        const incomingView = location.state?.view;
+        if (!incomingView) return;
+        setView(incomingView);
+        navigate(location.pathname, { replace: true, state: {} });
+    }, [location.state, location.pathname, navigate]);
+
     // Load a trade selected from /history once the catalog is ready.
     useEffect(() => {
         if (location.state?.loadTrade && tradeState.loadTradeFromHistory && dataReady) {
@@ -45,26 +53,6 @@ const Home = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when history navigates in
     }, [location.state?.loadTrade, dataReady]);
-
-    // Build sets list for navigation drawer (ordered by set number ascending = newest first)
-    const sets = useMemo(() => {
-        if (!cards || cards.length === 0) return [];
-        const bySet = new Map();
-        for (const card of cards) {
-            if (!card._setName || !card.extNumber) continue;
-            const existing = bySet.get(card._setName);
-            if (existing) {
-                existing.count += 1;
-            } else {
-                bySet.set(card._setName, {
-                    name: card._setName,
-                    number: card._setNumber || 999,
-                    count: 1
-                });
-            }
-        }
-        return Array.from(bySet.values()).sort((a, b) => a.number - b.number);
-    }, [cards]);
 
     // Fetch last updated timestamp
     useEffect(() => {
@@ -120,7 +108,6 @@ const Home = () => {
         }}>
             <Header 
                 lastUpdatedTimestamp={lastUpdatedTimestamp}
-                sets={sets}
                 currentView={view}
                 onNavigate={setView}
             />
