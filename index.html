@@ -22,5 +22,12 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Netlify Forms: static markup so the deploy bot can register the form.
+         The interactive UI lives in /support (React); submissions POST here. -->
+    <form name="support" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <textarea name="message"></textarea>
+    </form>
   </body>
 </html>

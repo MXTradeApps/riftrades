@@ -2,6 +2,7 @@ import './App.css';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
+import Support from './pages/Support.jsx';
 import BinderCollection from './pages/BinderCollection.jsx';
 import SharedBinder from './pages/SharedBinder.jsx';
 import TradeHistory from './pages/TradeHistory.jsx';
@@ -19,6 +20,7 @@ function App() {
                     <Route path="/sets" element={<SetList />} />
                     <Route path="/sets/:setId" element={<SetDetail />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/support" element={<Support />} />
                     <Route path="/binder" element={<BinderCollection isWanted={false} />} />
                     <Route path="/wants" element={<BinderCollection isWanted={true} />} />
                     <Route path="/b/:token" element={<SharedBinder />} />

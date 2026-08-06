@@ -33,4 +33,13 @@ describe('Header drawer', () => {
         expect(screen.queryByText('Loading sets…')).not.toBeInTheDocument();
         expect(screen.queryByText('Sets · Most Expensive')).not.toBeInTheDocument();
     });
+
+    test('links Support to /support', () => {
+        renderHeader('/');
+
+        fireEvent.click(screen.getByRole('button', { name: /menu/i }));
+
+        const support = screen.getByRole('link', { name: /^support$/i });
+        expect(support).toHaveAttribute('href', '/support');
+    });
 });

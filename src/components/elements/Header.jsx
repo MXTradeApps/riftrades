@@ -22,6 +22,7 @@ import {
     Home as HomeIcon,
     Style as BrowseIcon,
     PrivacyTip as PrivacyIcon,
+    SupportAgent as SupportIcon,
     CollectionsBookmark as BinderIcon,
     FavoriteBorder as WantIcon,
     History as HistoryIcon,
@@ -311,9 +312,45 @@ const Header = ({ lastUpdatedTimestamp }) => {
 
                     <ListItemButton
                         component={Link}
-                        to="/privacy"
+                        to="/support"
+                        selected={location.pathname === '/support'}
                         onClick={() => setDrawerOpen(false)}
-                        sx={{ mx: 1, borderRadius: 2 }}
+                        sx={{
+                            mx: 1,
+                            borderRadius: 2,
+                            '&.Mui-selected': {
+                                backgroundColor: isDark
+                                    ? 'rgba(212, 168, 83, 0.15)'
+                                    : 'rgba(26, 90, 122, 0.1)',
+                            },
+                        }}
+                    >
+                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
+                            <SupportIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                            primary="Support"
+                            primaryTypographyProps={{
+                                fontWeight: 600,
+                                color: isDark ? '#e8f4f8' : '#0a2540'
+                            }}
+                        />
+                    </ListItemButton>
+
+                    <ListItemButton
+                        component={Link}
+                        to="/privacy"
+                        selected={location.pathname === '/privacy'}
+                        onClick={() => setDrawerOpen(false)}
+                        sx={{
+                            mx: 1,
+                            borderRadius: 2,
+                            '&.Mui-selected': {
+                                backgroundColor: isDark
+                                    ? 'rgba(212, 168, 83, 0.15)'
+                                    : 'rgba(26, 90, 122, 0.1)',
+                            },
+                        }}
                     >
                         <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
                             <PrivacyIcon />

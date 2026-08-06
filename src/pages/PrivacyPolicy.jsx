@@ -195,8 +195,9 @@ const PrivacyPolicy = () => {
 
                     <Section title="Contact">
                         If you have questions about this Privacy Policy or how your information is
-                        handled, please reach out through the project's repository or the contact
-                        method provided there.
+                        handled, please reach out via our{' '}
+                        <a href="/support">Support</a> page or email{' '}
+                        <a href="mailto:mxbloombusiness@gmail.com">mxbloombusiness@gmail.com</a>.
                     </Section>
 
                     <Divider sx={{
