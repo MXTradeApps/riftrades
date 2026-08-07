@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-08-05T17:26:09.078Z",
-  "totalFiles": 9,
+  "lastUpdated": "2026-08-07T16:51:50.022Z",
+  "totalFiles": 10,
   "files": [
     {
       "name": "set_1.csv",
@@ -45,6 +45,11 @@
     {
       "name": "set_9.csv",
       "url": "https://tcgcsv.com/tcgplayer/89/24502/ProductsAndPrices.csv",
+      "status": "downloaded"
+    },
+    {
+      "name": "set_10.csv",
+      "url": "https://tcgcsv.com/tcgplayer/89/24797/ProductsAndPrices.csv",
       "status": "downloaded"
     }
   ]
