@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useCardData } from "../hooks/useCardData.jsx";
@@ -6,14 +6,12 @@ import { useTradeState } from "../hooks/useTradeState.js";
 import Header from "../components/elements/Header.jsx";
 import CardPanel from "../components/ui/CardPanel.jsx";
 import TradeSummary from "../components/elements/TradeSummary.jsx";
-import SetView from "./SetView.jsx";
 import { fetchLastUpdatedTimestamp } from "../services/api.js";
 import { useThemeMode } from "../contexts/ThemeContext.jsx";
 import { useCardDetail } from "../contexts/CardDetailContext.jsx";
 
 const Home = () => {
     const [lastUpdatedTimestamp, setLastUpdatedTimestamp] = useState(null);
-    const [view, setView] = useState({ type: 'home' });
     const { isDark } = useThemeMode();
     const location = useLocation();
     const navigate = useNavigate();
@@ -54,26 +52,6 @@ const Home = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when history navigates in
     }, [location.state?.loadTrade, dataReady]);
 
-    // Build sets list for navigation drawer (ordered by set number ascending = newest first)
-    const sets = useMemo(() => {
-        if (!cards || cards.length === 0) return [];
-        const bySet = new Map();
-        for (const card of cards) {
-            if (!card._setName || !card.extNumber) continue;
-            const existing = bySet.get(card._setName);
-            if (existing) {
-                existing.count += 1;
-            } else {
-                bySet.set(card._setName, {
-                    name: card._setName,
-                    number: card._setNumber || 999,
-                    count: 1
-                });
-            }
-        }
-        return Array.from(bySet.values()).sort((a, b) => a.number - b.number);
-    }, [cards]);
-
     // Fetch last updated timestamp
     useEffect(() => {
         const fetchTimestamp = async () => {
@@ -82,11 +60,6 @@ const Home = () => {
         };
         fetchTimestamp();
     }, []);
-
-    // Reset scroll when switching views
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, [view]);
 
     // Background gradients based on theme - Riftbound teal/navy
     const bgGradient = isDark 
@@ -126,83 +99,71 @@ const Home = () => {
             background: bgGradient,
             backgroundAttachment: 'fixed'
         }}>
-            <Header 
-                lastUpdatedTimestamp={lastUpdatedTimestamp}
-                sets={sets}
-                currentView={view}
-                onNavigate={setView}
-            />
+            <Header lastUpdatedTimestamp={lastUpdatedTimestamp} />
 
-            {view.type === 'set' ? (
-                <SetView
-                    setName={view.setName}
-                    onBack={() => setView({ type: 'home' })}
+            <Box sx={{ 
+                display: 'flex', 
+                flexGrow: 1, 
+                flexDirection: isLandscape ? 'row' : 'column',
+                width: '100%',
+                minHeight: 0,
+                gap: isLandscape ? 1.25 : 0,
+                p: isLandscape ? 1.25 : 0
+            }}>
+                <CardPanel
+                    title="Cards I Have"
+                    cards={tradeState.haveList}
+                    cardOptions={cardOptions}
+                    allCards={cards}
+                    inputValue={tradeState.haveInput}
+                    onInputChange={(e, v) => tradeState.setHaveInput(v || "")}
+                    onAddCard={tradeState.addHaveCard}
+                    onRemoveCard={tradeState.removeHaveCard}
+                    onUpdateQuantity={tradeState.updateHaveCardQuantity}
+                    isMobile={isMobile}
+                    totalColor="primary"
+                    disabled={!dataReady}
+                    isLandscape={isLandscape}
+                    viewMode={panelView}
                 />
-            ) : (
-                <Box sx={{ 
-                    display: 'flex', 
-                    flexGrow: 1, 
-                    flexDirection: isLandscape ? 'row' : 'column',
-                    width: '100%',
-                    minHeight: 0,
-                    gap: isLandscape ? 1.25 : 0,
-                    p: isLandscape ? 1.25 : 0
-                }}>
-                    <CardPanel
-                        title="Cards I Have"
-                        cards={tradeState.haveList}
-                        cardOptions={cardOptions}
-                        allCards={cards}
-                        inputValue={tradeState.haveInput}
-                        onInputChange={(e, v) => tradeState.setHaveInput(v || "")}
-                        onAddCard={tradeState.addHaveCard}
-                        onRemoveCard={tradeState.removeHaveCard}
-                        onUpdateQuantity={tradeState.updateHaveCardQuantity}
-                        isMobile={isMobile}
-                        totalColor="primary"
-                        disabled={!dataReady}
-                        isLandscape={isLandscape}
-                        viewMode={panelView}
-                    />
 
-                    {(tradeState.haveList.length >= 0 || tradeState.wantList.length >= 0) && (
-                        <TradeSummary
-                            haveList={tradeState.haveList}
-                            wantList={tradeState.wantList}
-                            haveTotal={tradeState.haveTotal}
-                            wantTotal={tradeState.wantTotal}
-                            diff={tradeState.diff}
-                            isLandscape={isLandscape}
-                            generateShareURL={tradeState.generateShareURL}
-                            clearURLTradeData={tradeState.clearURLTradeData}
-                            clearTrade={tradeState.clearTrade}
-                            getURLSizeInfo={tradeState.getURLSizeInfo}
-                            testURLRoundTrip={tradeState.testURLRoundTrip}
-                            urlTradeData={tradeState.urlTradeData}
-                            hasLoadedFromURL={tradeState.hasLoadedFromURL}
-                            onAddHaveCard={tradeState.addHaveCard}
-                            onAddWantCard={tradeState.addWantCard}
-                        />
-                    )}
-
-                    <CardPanel
-                        title="Cards I Want"
-                        cards={tradeState.wantList}
-                        cardOptions={cardOptions}
-                        allCards={cards}
-                        inputValue={tradeState.wantInput}
-                        onInputChange={(e, v) => tradeState.setWantInput(v || "")}
-                        onAddCard={tradeState.addWantCard}
-                        onRemoveCard={tradeState.removeWantCard}
-                        onUpdateQuantity={tradeState.updateWantCardQuantity}
-                        isMobile={isMobile}
-                        totalColor="success"
-                        disabled={!dataReady}
+                {(tradeState.haveList.length >= 0 || tradeState.wantList.length >= 0) && (
+                    <TradeSummary
+                        haveList={tradeState.haveList}
+                        wantList={tradeState.wantList}
+                        haveTotal={tradeState.haveTotal}
+                        wantTotal={tradeState.wantTotal}
+                        diff={tradeState.diff}
                         isLandscape={isLandscape}
-                        viewMode={panelView}
+                        generateShareURL={tradeState.generateShareURL}
+                        clearURLTradeData={tradeState.clearURLTradeData}
+                        clearTrade={tradeState.clearTrade}
+                        getURLSizeInfo={tradeState.getURLSizeInfo}
+                        testURLRoundTrip={tradeState.testURLRoundTrip}
+                        urlTradeData={tradeState.urlTradeData}
+                        hasLoadedFromURL={tradeState.hasLoadedFromURL}
+                        onAddHaveCard={tradeState.addHaveCard}
+                        onAddWantCard={tradeState.addWantCard}
                     />
-                </Box>
-            )}
+                )}
+
+                <CardPanel
+                    title="Cards I Want"
+                    cards={tradeState.wantList}
+                    cardOptions={cardOptions}
+                    allCards={cards}
+                    inputValue={tradeState.wantInput}
+                    onInputChange={(e, v) => tradeState.setWantInput(v || "")}
+                    onAddCard={tradeState.addWantCard}
+                    onRemoveCard={tradeState.removeWantCard}
+                    onUpdateQuantity={tradeState.updateWantCardQuantity}
+                    isMobile={isMobile}
+                    totalColor="success"
+                    disabled={!dataReady}
+                    isLandscape={isLandscape}
+                    viewMode={panelView}
+                />
+            </Box>
         </Box>
     );
 };

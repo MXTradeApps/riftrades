@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
     AppBar,
     Toolbar,
@@ -13,8 +13,6 @@ import {
     ListItemButton,
     ListItemText,
     ListItemIcon,
-    Divider,
-    Chip
 } from '@mui/material';
 import {
     DarkMode,
@@ -22,8 +20,9 @@ import {
     Menu as MenuIcon,
     Close as CloseIcon,
     Home as HomeIcon,
-    LocalOffer as SetIcon,
+    Style as BrowseIcon,
     PrivacyTip as PrivacyIcon,
+    SupportAgent as SupportIcon,
     CollectionsBookmark as BinderIcon,
     FavoriteBorder as WantIcon,
     History as HistoryIcon,
@@ -32,27 +31,18 @@ import { formatTimestamp } from "../../utils/helpers.js";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
 import LoginButton from "../auth/LoginButton.jsx";
 
-const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' }, onNavigate }) => {
+const NAV_ITEMS = [
+    { label: 'Trade Calculator', to: '/', icon: HomeIcon, match: (path) => path === '/' },
+    { label: 'Browse Sets', to: '/sets', icon: BrowseIcon, match: (path) => path.startsWith('/sets') },
+    { label: 'My Binder', to: '/binder', icon: BinderIcon, match: (path) => path === '/binder' },
+    { label: 'Want List', to: '/wants', icon: WantIcon, match: (path) => path === '/wants' },
+    { label: 'Trade History', to: '/history', icon: HistoryIcon, match: (path) => path === '/history' },
+];
+
+const Header = ({ lastUpdatedTimestamp }) => {
     const { isDark, toggleMode } = useThemeMode();
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const navigate = useNavigate();
     const location = useLocation();
-
-    const handleNavigate = (view) => {
-        setDrawerOpen(false);
-        if (location.pathname !== '/') {
-            navigate('/');
-        }
-        // Defer so Home mounts before view change when coming from another route.
-        if (onNavigate) {
-            setTimeout(() => onNavigate(view), 0);
-        }
-    };
-
-    const handleRoute = (path) => {
-        setDrawerOpen(false);
-        navigate(path);
-    };
 
     const navButtonSx = (active) => ({
         display: { xs: 'none', sm: 'inline-flex' },
@@ -106,6 +96,7 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                             <IconButton
                                 onClick={() => setDrawerOpen(true)}
                                 size="small"
+                                aria-label="Menu"
                                 sx={{
                                     color: '#d4a853',
                                     p: 0.75,
@@ -121,8 +112,7 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                             component={Link}
                             to="/"
                             size="small"
-                            onClick={() => onNavigate?.({ type: 'home' })}
-                            sx={navButtonSx(location.pathname === '/' && currentView.type === 'home')}
+                            sx={navButtonSx(location.pathname === '/')}
                         >
                             Trade Calculator
                         </Button>
@@ -137,6 +127,8 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                     </Box>
 
                     <Box
+                        component={Link}
+                        to="/"
                         sx={{
                             position: 'absolute',
                             left: '50%',
@@ -145,19 +137,9 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 0.75,
-                            pointerEvents: 'auto',
                             zIndex: 0,
-                            cursor: currentView.type !== 'home' || location.pathname !== '/'
-                                ? 'pointer'
-                                : 'default'
-                        }}
-                        onClick={() => {
-                            if (location.pathname !== '/') {
-                                navigate('/');
-                            }
-                            if (currentView.type !== 'home' && onNavigate) {
-                                onNavigate({ type: 'home' });
-                            }
+                            textDecoration: 'none',
+                            cursor: 'pointer',
                         }}
                     >
                         <Box
@@ -295,22 +277,59 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                 </Box>
 
                 <List sx={{ py: 1 }}>
+                    {NAV_ITEMS.map(({ label, to, icon: Icon, match }) => {
+                        const selected = match(location.pathname);
+                        return (
+                            <ListItemButton
+                                key={to}
+                                component={Link}
+                                to={to}
+                                selected={selected}
+                                onClick={() => setDrawerOpen(false)}
+                                sx={{
+                                    mx: 1,
+                                    borderRadius: 2,
+                                    '&.Mui-selected': {
+                                        backgroundColor: isDark
+                                            ? 'rgba(212, 168, 83, 0.15)'
+                                            : 'rgba(26, 90, 122, 0.1)',
+                                    }
+                                }}
+                            >
+                                <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
+                                    <Icon />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary={label}
+                                    primaryTypographyProps={{
+                                        fontWeight: 600,
+                                        color: isDark ? '#e8f4f8' : '#0a2540'
+                                    }}
+                                />
+                            </ListItemButton>
+                        );
+                    })}
+
                     <ListItemButton
-                        selected={location.pathname === '/' && currentView.type === 'home'}
-                        onClick={() => handleNavigate({ type: 'home' })}
+                        component={Link}
+                        to="/support"
+                        selected={location.pathname === '/support'}
+                        onClick={() => setDrawerOpen(false)}
                         sx={{
                             mx: 1,
                             borderRadius: 2,
                             '&.Mui-selected': {
-                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                            }
+                                backgroundColor: isDark
+                                    ? 'rgba(212, 168, 83, 0.15)'
+                                    : 'rgba(26, 90, 122, 0.1)',
+                            },
                         }}
                     >
                         <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
-                            <HomeIcon />
+                            <SupportIcon />
                         </ListItemIcon>
                         <ListItemText
-                            primary="Trade Calculator"
+                            primary="Support"
                             primaryTypographyProps={{
                                 fontWeight: 600,
                                 color: isDark ? '#e8f4f8' : '#0a2540'
@@ -319,77 +338,19 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                     </ListItemButton>
 
                     <ListItemButton
-                        selected={location.pathname === '/binder'}
-                        onClick={() => handleRoute('/binder')}
+                        component={Link}
+                        to="/privacy"
+                        selected={location.pathname === '/privacy'}
+                        onClick={() => setDrawerOpen(false)}
                         sx={{
                             mx: 1,
                             borderRadius: 2,
                             '&.Mui-selected': {
-                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                            }
+                                backgroundColor: isDark
+                                    ? 'rgba(212, 168, 83, 0.15)'
+                                    : 'rgba(26, 90, 122, 0.1)',
+                            },
                         }}
-                    >
-                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
-                            <BinderIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                            primary="My Binder"
-                            primaryTypographyProps={{
-                                fontWeight: 600,
-                                color: isDark ? '#e8f4f8' : '#0a2540'
-                            }}
-                        />
-                    </ListItemButton>
-
-                    <ListItemButton
-                        selected={location.pathname === '/wants'}
-                        onClick={() => handleRoute('/wants')}
-                        sx={{
-                            mx: 1,
-                            borderRadius: 2,
-                            '&.Mui-selected': {
-                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                            }
-                        }}
-                    >
-                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
-                            <WantIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                            primary="Want List"
-                            primaryTypographyProps={{
-                                fontWeight: 600,
-                                color: isDark ? '#e8f4f8' : '#0a2540'
-                            }}
-                        />
-                    </ListItemButton>
-
-                    <ListItemButton
-                        selected={location.pathname === '/history'}
-                        onClick={() => handleRoute('/history')}
-                        sx={{
-                            mx: 1,
-                            borderRadius: 2,
-                            '&.Mui-selected': {
-                                backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                            }
-                        }}
-                    >
-                        <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
-                            <HistoryIcon />
-                        </ListItemIcon>
-                        <ListItemText
-                            primary="Trade History"
-                            primaryTypographyProps={{
-                                fontWeight: 600,
-                                color: isDark ? '#e8f4f8' : '#0a2540'
-                            }}
-                        />
-                    </ListItemButton>
-
-                    <ListItemButton
-                        onClick={() => handleRoute('/privacy')}
-                        sx={{ mx: 1, borderRadius: 2 }}
                     >
                         <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
                             <PrivacyIcon />
@@ -402,78 +363,6 @@ const Header = ({ lastUpdatedTimestamp, sets = [], currentView = { type: 'home' 
                             }}
                         />
                     </ListItemButton>
-                </List>
-
-                <Divider sx={{ mx: 2, borderColor: isDark ? 'rgba(212, 168, 83, 0.2)' : 'rgba(26, 90, 122, 0.15)' }} />
-
-                <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-                    <Typography sx={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        color: isDark ? '#a0c4d4' : '#1a4a6e',
-                        opacity: 0.8
-                    }}>
-                        Sets · Most Expensive
-                    </Typography>
-                </Box>
-
-                <List sx={{ py: 0, overflow: 'auto' }}>
-                    {sets.length === 0 && (
-                        <Box sx={{ px: 2.5, py: 2 }}>
-                            <Typography sx={{
-                                fontSize: '0.85rem',
-                                color: isDark ? '#a0c4d4' : '#1a4a6e',
-                                opacity: 0.7,
-                                fontStyle: 'italic'
-                            }}>
-                                Loading sets…
-                            </Typography>
-                        </Box>
-                    )}
-                    {sets.map((set) => {
-                        const isActive = currentView.type === 'set' && currentView.setName === set.name;
-                        return (
-                            <ListItemButton
-                                key={set.name}
-                                selected={isActive}
-                                onClick={() => handleNavigate({ type: 'set', setName: set.name })}
-                                sx={{
-                                    mx: 1,
-                                    borderRadius: 2,
-                                    mb: 0.25,
-                                    '&.Mui-selected': {
-                                        backgroundColor: isDark ? 'rgba(212, 168, 83, 0.15)' : 'rgba(26, 90, 122, 0.1)',
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ color: isDark ? '#d4a853' : '#1a5a7a', minWidth: 40 }}>
-                                    <SetIcon />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary={set.name}
-                                    primaryTypographyProps={{
-                                        fontWeight: 600,
-                                        fontSize: '0.92rem',
-                                        color: isDark ? '#e8f4f8' : '#0a2540'
-                                    }}
-                                />
-                                <Chip
-                                    label={set.count}
-                                    size="small"
-                                    sx={{
-                                        height: 20,
-                                        fontSize: '0.7rem',
-                                        fontWeight: 700,
-                                        color: isDark ? '#0a2540' : '#ffffff',
-                                        backgroundColor: isDark ? '#d4a853' : '#1a5a7a',
-                                        '& .MuiChip-label': { px: 1 }
-                                    }}
-                                />
-                            </ListItemButton>
-                        );
-                    })}
                 </List>
             </Drawer>
         </>
