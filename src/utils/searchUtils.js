@@ -269,6 +269,23 @@ export const getCardGradient = (subTypeName, rarity = '', isDark = false) => {
 };
 
 /**
+ * Format a card type into a cleaner display name
+ */
+export const formatCardType = (subTypeName) => {
+    if (!subTypeName) return null;
+
+    const type = subTypeName.toLowerCase();
+
+    if (type.includes('pack foil')) return 'Pack Foil';
+    if (type.includes('nexus night')) return 'Nexus Night';
+    if (type.includes('foil')) return 'Foil';
+    if (type.includes('promo')) return 'Promo';
+    if (type.includes('normal')) return null;
+
+    return subTypeName;
+};
+
+/**
  * Debounce function for search input
  * @param {Function} func - Function to debounce
  * @param {number} wait - Wait time in milliseconds

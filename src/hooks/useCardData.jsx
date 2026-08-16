@@ -368,6 +368,7 @@ export const CardDataProvider = ({ children }) => {
         error,
         dataSource,
         metadata,
+        pricesUpdatedAt: metadata?.generatedAt ?? metadata?.lastUpdated ?? metadata?.updatedAt ?? null,
         // Helper function for components to get prices
         getCardPrice: (card) => getCardPrice(card, priceSource, priceType)
     }), [cards, cardGroups, cardIdLookup, loading, dataReady, error, dataSource, metadata, priceSource, priceType]);

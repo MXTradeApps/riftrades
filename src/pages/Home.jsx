@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useCardData } from "../hooks/useCardData.jsx";
@@ -9,6 +9,7 @@ import TradeSummary from "../components/elements/TradeSummary.jsx";
 import SetView from "./SetView.jsx";
 import { fetchLastUpdatedTimestamp } from "../services/api.js";
 import { useThemeMode } from "../contexts/ThemeContext.jsx";
+import { useCardDetail } from "../contexts/CardDetailContext.jsx";
 
 const Home = () => {
     const [lastUpdatedTimestamp, setLastUpdatedTimestamp] = useState(null);
@@ -36,6 +37,13 @@ const Home = () => {
     }));
 
     const tradeState = useTradeState(cardGroups, cardIdLookup);
+    const { registerAddWant } = useCardDetail();
+    const addWantRef = useRef(tradeState.addWantCard);
+    addWantRef.current = tradeState.addWantCard;
+
+    useEffect(() => {
+        return registerAddWant((payload) => addWantRef.current(payload));
+    }, [registerAddWant]);
 
     // Load a trade selected from /history once the catalog is ready.
     useEffect(() => {

@@ -36,8 +36,8 @@ import { useThemeMode } from '../contexts/ThemeContext.jsx';
 import { useCardData } from '../hooks/useCardData.jsx';
 import Header from '../components/elements/Header.jsx';
 import { SearchInput } from '../components/search/index.js';
-import { CardImageModal } from '../components/ui/CardImagePreview.jsx';
 import SignInDialog from '../components/auth/SignInDialog.jsx';
+import { useCardDetail } from '../contexts/CardDetailContext.jsx';
 import { capture } from '../lib/analytics.js';
 import {
     ensureBinderShare,
@@ -187,6 +187,7 @@ const BinderCollection = ({ isWanted = false }) => {
     const { isPro, loading: entitlementLoading } = useEntitlement();
     const { isDark } = useThemeMode();
     const { cards, cardGroups, metadata } = useCardData();
+    const { openDetail } = useCardDetail();
     const lastUpdatedTimestamp = metadata?.lastUpdated || metadata?.updatedAt || null;
 
     const [entries, setEntries] = useState([]);
@@ -198,7 +199,6 @@ const BinderCollection = ({ isWanted = false }) => {
     const [busyCardId, setBusyCardId] = useState(null);
     const [limitMessage, setLimitMessage] = useState('');
     const [toast, setToast] = useState('');
-    const [previewCard, setPreviewCard] = useState(null);
     const [shareOpen, setShareOpen] = useState(false);
     const [share, setShare] = useState(null);
     const [shareBusy, setShareBusy] = useState(false);
@@ -328,6 +328,11 @@ const BinderCollection = ({ isWanted = false }) => {
             }, 0),
         [entries, resolveCard],
     );
+
+    const openEntryDetail = (entry) => {
+        const live = catalogById.get(entry.cardId);
+        if (live?._uniqueId) openDetail(live);
+    };
 
     const atFreeLimit =
         !entitlementLoading &&
@@ -857,7 +862,7 @@ const BinderCollection = ({ isWanted = false }) => {
                                             alt={card.name}
                                             qty={qty}
                                             mutedColor={mutedColor}
-                                            onClick={() => setPreviewCard(card)}
+                                            onClick={() => openEntryDetail(entry)}
                                         />
 
                                         <Box
@@ -871,6 +876,10 @@ const BinderCollection = ({ isWanted = false }) => {
                                             }}
                                         >
                                             <Typography
+                                                component="button"
+                                                type="button"
+                                                onClick={() => openEntryDetail(entry)}
+                                                aria-label={`View details for ${card.name}`}
                                                 sx={{
                                                     fontWeight: 700,
                                                     fontSize: '0.8rem',
@@ -880,6 +889,13 @@ const BinderCollection = ({ isWanted = false }) => {
                                                     WebkitLineClamp: 2,
                                                     WebkitBoxOrient: 'vertical',
                                                     overflow: 'hidden',
+                                                    border: 0,
+                                                    background: 'none',
+                                                    p: 0,
+                                                    m: 0,
+                                                    textAlign: 'left',
+                                                    fontFamily: 'inherit',
+                                                    cursor: 'pointer',
                                                 }}
                                             >
                                                 {card.name}
@@ -1093,14 +1109,6 @@ const BinderCollection = ({ isWanted = false }) => {
                     )}
                 </Paper>
             </Container>
-
-            <CardImageModal
-                open={Boolean(previewCard)}
-                onClose={() => setPreviewCard(null)}
-                imageUrl={previewCard?.imageUrl}
-                fallbackUrl={previewCard?.imageUrlFallback}
-                cardName={previewCard?.name}
-            />
 
             <Dialog
                 open={shareOpen}

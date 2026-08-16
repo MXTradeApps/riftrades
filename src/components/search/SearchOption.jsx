@@ -1,28 +1,11 @@
 import React, { useState } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { getCardGradient, highlightMatch } from '../../utils/searchUtils';
+import { getCardGradient, highlightMatch, formatCardType } from '../../utils/searchUtils';
 import { useThemeMode } from '../../contexts/ThemeContext.jsx';
 import { usePriceType } from '../../contexts/PriceContext.jsx';
+import { useCardDetail } from '../../contexts/CardDetailContext.jsx';
 import { CardThumbnail } from '../ui/CardImagePreview.jsx';
-
-/**
- * Format a card type into a cleaner display name
- */
-const formatCardType = (subTypeName) => {
-    if (!subTypeName) return null;
-    
-    const type = subTypeName.toLowerCase();
-    
-    // Return clean labels for different types
-    if (type.includes('pack foil')) return 'Pack Foil';
-    if (type.includes('nexus night')) return 'Nexus Night';
-    if (type.includes('foil')) return 'Foil';
-    if (type.includes('promo')) return 'Promo';
-    if (type.includes('normal')) return null; // Don't show badge for normal cards
-    
-    // Return the original if it's something else
-    return subTypeName;
-};
+import { resolvePrinting } from '../../utils/printingsForCard.js';
 
 /**
  * SearchOption Component
@@ -37,6 +20,7 @@ const SearchOption = ({
 }) => {
     const { isDark } = useThemeMode();
     const { priceSource } = usePriceType();
+    const { openDetail } = useCardDetail();
     const [isHovered, setIsHovered] = useState(false);
     const gradient = getCardGradient(option.subTypeName, '', isDark);
     const textSegments = highlightMatch(option.label, searchTerm);
@@ -47,20 +31,20 @@ const SearchOption = ({
     // Get set name and image URL
     const setName = option.setName || option.card?._setName || '';
     const imageUrl = option.card?.imageUrl || '';
-    
-    // Get price from card object
-    const price = option.card?.marketPrice || option.card?.lowPrice || 0;
+    const imageUrlFallback = option.card?.imageUrlFallback || '';
+
+    const marketPrice = option.card?.marketPrice || 0;
+    const lowPrice = option.card?.lowPrice;
     
     // Format price based on price source
     const formatPrice = (amount) => {
         if (priceSource === 'cardmarket') {
-            const cmPrice = option.card?.cardmarketTrend || option.card?.cardmarketLow || 0;
             return new Intl.NumberFormat('de-DE', {
                 style: 'currency',
                 currency: 'EUR',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 2
-            }).format(cmPrice);
+            }).format(amount);
         }
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -70,6 +54,13 @@ const SearchOption = ({
         }).format(amount);
     };
 
+    const primaryPrice = priceSource === 'cardmarket'
+        ? (option.card?.cardmarketTrend || option.card?.cardmarketLow || 0)
+        : marketPrice;
+    const secondaryLow = priceSource === 'cardmarket'
+        ? option.card?.cardmarketLow
+        : lowPrice;
+
     const handleMouseEnter = () => {
         setIsHovered(true);
         onMouseEnter?.();
@@ -77,6 +68,12 @@ const SearchOption = ({
 
     const handleMouseLeave = () => {
         setIsHovered(false);
+    };
+
+    const printing = resolvePrinting(option.card || option);
+    const openPrinting = (event) => {
+        event.stopPropagation();
+        if (printing) openDetail(printing);
     };
 
     return (
@@ -109,8 +106,10 @@ const SearchOption = ({
             {/* Card thumbnail - smaller */}
             <CardThumbnail 
                 imageUrl={imageUrl} 
+                fallbackUrl={imageUrlFallback}
                 alt={option.label} 
                 size={28}
+                onClick={printing ? openPrinting : undefined}
             />
             
             {/* Card info: name and set - takes remaining space */}
@@ -129,7 +128,10 @@ const SearchOption = ({
                     minWidth: 0
                 }}>
                     <Typography
-                        component="span"
+                        component={printing ? 'button' : 'span'}
+                        type={printing ? 'button' : undefined}
+                        onClick={printing ? openPrinting : undefined}
+                        aria-label={printing ? `View details for ${option.card?.name || option.label}` : undefined}
                         sx={{
                             fontSize: '0.8rem',
                             fontWeight: isHighlighted || isHovered ? 600 : 500,
@@ -137,7 +139,14 @@ const SearchOption = ({
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            lineHeight: 1.3
+                            lineHeight: 1.3,
+                            border: 0,
+                            background: 'none',
+                            p: 0,
+                            m: 0,
+                            textAlign: 'left',
+                            fontFamily: 'inherit',
+                            cursor: printing ? 'pointer' : 'inherit',
                         }}
                     >
                         {textSegments.map((segment, index) => (
@@ -202,19 +211,56 @@ const SearchOption = ({
                 )}
             </Box>
             
-            {/* Price - right aligned */}
-            <Typography
-                component="span"
+            {/* Price is the remaining add control (row click also adds). */}
+            <Box
+                component="button"
+                type="button"
+                aria-label={`Add ${option.label}`}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onClick?.(event);
+                }}
                 sx={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: isDark ? '#5abada' : '#1a5a7a',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    flexShrink: 0,
+                    gap: 0.1,
+                    border: 0,
+                    background: 'none',
+                    p: 0,
+                    m: 0,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
                 }}
             >
-                {formatPrice(price)}
-            </Typography>
+                <Typography
+                    component="span"
+                    sx={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: isDark ? '#5abada' : '#1a5a7a',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1.2
+                    }}
+                >
+                    {formatPrice(primaryPrice)}
+                </Typography>
+                {secondaryLow != null && Number(secondaryLow) > 0 && (
+                    <Typography
+                        component="span"
+                        sx={{
+                            fontSize: '0.6rem',
+                            fontWeight: 400,
+                            color: isDark ? 'rgba(160, 196, 212, 0.65)' : 'rgba(26, 74, 110, 0.5)',
+                            whiteSpace: 'nowrap',
+                            lineHeight: 1.1
+                        }}
+                    >
+                        Low {formatPrice(secondaryLow)}
+                    </Typography>
+                )}
+            </Box>
         </Box>
     );
 };

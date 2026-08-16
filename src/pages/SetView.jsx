@@ -19,7 +19,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useCardData } from "../hooks/useCardData.jsx";
 import { useThemeMode } from "../contexts/ThemeContext.jsx";
-import { CardThumbnail, CardImageModal } from "../components/ui/CardImagePreview.jsx";
+import { CardThumbnail } from "../components/ui/CardImagePreview.jsx";
+import { useCardDetail } from "../contexts/CardDetailContext.jsx";
 
 // Signature cards are marked with "(Signature)" in the card name and an
 // asterisk in their extNumber (e.g., "234*/219"). We check both for safety.
@@ -111,7 +112,7 @@ const FilterToggle = ({ label, count, singular, plural, checked, onChange, accen
     </Box>
 );
 
-const CardRow = ({ card, rank, isDark, isMobile, onShowImage }) => {
+const CardRow = ({ card, rank, isDark, isMobile, onOpenDetail }) => {
     const accent = isDark ? '#d4a853' : '#1a5a7a';
     const subtle = isDark ? 'rgba(160, 196, 212, 0.8)' : 'rgba(26, 74, 110, 0.8)';
     const rColor = rarityColor(card.extRarity, isDark);
@@ -191,7 +192,7 @@ const CardRow = ({ card, rank, isDark, isMobile, onShowImage }) => {
                 imageUrl={card.imageUrl}
                 alt={card.name}
                 size={isMobile ? 40 : 48}
-                onClick={card.imageUrl ? () => onShowImage(card) : undefined}
+                onClick={card._uniqueId ? () => onOpenDetail(card) : undefined}
             />
 
             {/* Card info */}
@@ -202,14 +203,26 @@ const CardRow = ({ card, rank, isDark, isMobile, onShowImage }) => {
                     gap: 0.75,
                     flexWrap: 'wrap'
                 }}>
-                    <Typography sx={{
+                    <Typography
+                        component={card._uniqueId ? 'button' : 'span'}
+                        type={card._uniqueId ? 'button' : undefined}
+                        onClick={card._uniqueId ? () => onOpenDetail(card) : undefined}
+                        aria-label={card._uniqueId ? `View details for ${card.name}` : undefined}
+                        sx={{
                         fontSize: { xs: '0.95rem', sm: '1.05rem' },
                         fontWeight: 700,
                         color: isDark ? '#e8f4f8' : '#0a2540',
                         lineHeight: 1.2,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        border: 0,
+                        background: 'none',
+                        p: 0,
+                        m: 0,
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
+                        cursor: card._uniqueId ? 'pointer' : 'default',
                     }}>
                         {card.name}
                     </Typography>
@@ -354,11 +367,11 @@ const CardRow = ({ card, rank, isDark, isMobile, onShowImage }) => {
 
 const SetView = ({ setName, onBack }) => {
     const { cards, loading } = useCardData();
+    const { openDetail } = useCardDetail();
     const { isDark } = useThemeMode();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [filter, setFilter] = useState('');
-    const [modalCard, setModalCard] = useState(null);
     const [hideSignatures, setHideSignatures] = useState(() => {
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem('riftrades-hide-signatures') === 'true';
@@ -638,18 +651,12 @@ const SetView = ({ setName, onBack }) => {
                             rank={rank}
                             isDark={isDark}
                             isMobile={isMobile}
-                            onShowImage={setModalCard}
+                            onOpenDetail={openDetail}
                         />
                     );
                 })}
             </Box>
 
-            <CardImageModal
-                open={!!modalCard}
-                onClose={() => setModalCard(null)}
-                imageUrl={modalCard?.imageUrl}
-                cardName={modalCard?.name}
-            />
         </Box>
     );
 };

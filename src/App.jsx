@@ -7,19 +7,24 @@ import SharedBinder from './pages/SharedBinder.jsx';
 import TradeHistory from './pages/TradeHistory.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { EntitlementProvider } from './contexts/EntitlementContext.jsx';
+import { CardDetailProvider } from './contexts/CardDetailContext.jsx';
+import { CardDetailHost } from './components/cardDetail/CardDetailModal.jsx';
 
 function App() {
     return (
         <AuthProvider>
             <EntitlementProvider>
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/privacy" element={<PrivacyPolicy />} />
-                    <Route path="/binder" element={<BinderCollection isWanted={false} />} />
-                    <Route path="/wants" element={<BinderCollection isWanted={true} />} />
-                    <Route path="/b/:token" element={<SharedBinder />} />
-                    <Route path="/history" element={<TradeHistory />} />
-                </Routes>
+                <CardDetailProvider>
+                    <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/privacy" element={<PrivacyPolicy />} />
+                        <Route path="/binder" element={<BinderCollection isWanted={false} />} />
+                        <Route path="/wants" element={<BinderCollection isWanted={true} />} />
+                        <Route path="/b/:token" element={<SharedBinder />} />
+                        <Route path="/history" element={<TradeHistory />} />
+                    </Routes>
+                    <CardDetailHost />
+                </CardDetailProvider>
             </EntitlementProvider>
         </AuthProvider>
     );

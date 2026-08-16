@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     List,
     ListItem,
@@ -11,21 +11,27 @@ import {
     Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import StyleIcon from '@mui/icons-material/Style';
+import Tooltip from '@mui/material/Tooltip';
 import { formatCurrency } from "../../utils/helpers.js";
 import { getCardGradient } from "../../utils/searchUtils.js";
 import { usePriceType } from "../../contexts/PriceContext.jsx";
 import { useThemeMode } from "../../contexts/ThemeContext.jsx";
-import { CardThumbnail, CardImageModal } from "./CardImagePreview.jsx";
+import { CardThumbnail } from "./CardImagePreview.jsx";
+import { useCardDetail } from "../../contexts/CardDetailContext.jsx";
+import { useCardData } from "../../hooks/useCardData.jsx";
+import { resolvePrinting } from "../../utils/printingsForCard.js";
 
 const CardList = ({ 
     cards, 
     onRemoveCard, 
     onUpdateQuantity, 
+    disabled = false,
     viewMode = 'list',
     isLandscape = false,
 }) => {
-    const [imageModalOpen, setImageModalOpen] = useState(false);
-    const [selectedCard, setSelectedCard] = useState(null);
+    const { openDetail } = useCardDetail();
+    const { cardIdLookup } = useCardData();
     const { priceSource } = usePriceType();
     const { isDark } = useThemeMode();
     const isGrid = viewMode === 'grid';
@@ -42,20 +48,15 @@ const CardList = ({
         return formatCurrency(amount);
     };
 
+    const handleOpenDetail = (card) => {
+        const printing = resolvePrinting(card, cardIdLookup);
+        if (printing) openDetail(printing);
+    };
+
     const handleQuantityChange = (cardIndex, newQuantity) => {
         if (onUpdateQuantity) {
             onUpdateQuantity(cardIndex, newQuantity);
         }
-    };
-
-    const handleImageClick = (card) => {
-        setSelectedCard(card);
-        setImageModalOpen(true);
-    };
-
-    const handleImageModalClose = () => {
-        setImageModalOpen(false);
-        setSelectedCard(null);
     };
 
     const quantityOptions = Array.from({ length: 6 }, (_, i) => i + 1);
@@ -63,6 +64,31 @@ const CardList = ({
     const muted = isDark ? 'rgba(160, 196, 212, 0.7)' : 'rgba(26, 74, 110, 0.55)';
     const paperBorder = isDark ? 'rgba(58, 154, 186, 0.25)' : 'rgba(26, 90, 122, 0.15)';
     const textColor = isDark ? '#e8f4f8' : '#0a2540';
+
+    const emptyState = cards.length === 0 && (
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
+            py: { xs: 3, sm: 5 },
+            px: 2,
+            textAlign: 'center'
+        }}>
+            <StyleIcon sx={{
+                fontSize: 36,
+                color: isDark ? 'rgba(160, 196, 212, 0.35)' : 'rgba(26, 90, 122, 0.25)'
+            }} />
+            <Typography variant="body2" sx={{
+                color: isDark ? 'rgba(160, 196, 212, 0.6)' : 'rgba(26, 74, 110, 0.55)',
+                maxWidth: '28ch'
+            }}>
+                {disabled
+                    ? 'Loading card prices…'
+                    : 'Search above to add cards to this side of the trade'}
+            </Typography>
+        </Box>
+    );
 
     const quantitySelect = (card, index, { compact = false } = {}) => (
         <FormControl
@@ -104,7 +130,6 @@ const CardList = ({
     );
 
     return (
-        <>
         <Box sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -120,6 +145,8 @@ const CardList = ({
                 display: 'flex',
                 flexDirection: 'column',
             }}>
+                {emptyState}
+
                 {!isGrid && cards.length > 0 && (
                     <List sx={{
                         width: '100%',
@@ -132,6 +159,7 @@ const CardList = ({
                     }}>
                         {cards.map((card, index) => {
                             const gradient = getCardGradient(card.subTypeName, '', isDark);
+                            const printing = resolvePrinting(card, cardIdLookup);
                             return (
                                 <ListItem
                                     key={`${card.uniqueId || card.name}-${index}`}
@@ -176,15 +204,20 @@ const CardList = ({
                                 >
                                     <CardThumbnail 
                                         imageUrl={card.imageUrl} 
+                                        fallbackUrl={card.imageUrlFallback}
                                         alt={card.name}
                                         size={40}
-                                        onClick={() => handleImageClick(card)}
+                                        onClick={printing ? () => handleOpenDetail(card) : undefined}
                                     />
                                     
                                     <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         {quantitySelect(card, index)}
 
                                         <Typography
+                                            component={printing ? 'button' : 'span'}
+                                            type={printing ? 'button' : undefined}
+                                            onClick={printing ? () => handleOpenDetail(card) : undefined}
+                                            aria-label={printing ? `View details for ${card.name}` : undefined}
                                             variant="body2"
                                             sx={{
                                                 fontSize: { xs: '0.8rem', sm: '0.875rem', md: '0.95rem', lg: '1rem', xl: '1.125rem' },
@@ -193,7 +226,20 @@ const CardList = ({
                                                 textOverflow: 'ellipsis',
                                                 whiteSpace: 'nowrap',
                                                 flex: 1,
-                                                minWidth: 0
+                                                minWidth: 0,
+                                                border: 0,
+                                                background: 'none',
+                                                p: 0,
+                                                m: 0,
+                                                textAlign: 'left',
+                                                color: 'inherit',
+                                                fontFamily: 'inherit',
+                                                cursor: printing ? 'pointer' : 'default',
+                                                textDecoration: printing ? 'underline' : 'none',
+                                                textDecorationColor: 'transparent',
+                                                '&:hover': printing ? {
+                                                    textDecorationColor: 'currentColor',
+                                                } : undefined,
                                             }}
                                         >
                                             {card.name}
@@ -207,15 +253,39 @@ const CardList = ({
                                         flexShrink: 0,
                                         minWidth: 'fit-content'
                                     }}>
-                                        <Chip
-                                            label={formatPrice(card.price || 0)}
-                                            color="primary"
-                                            size="small"
-                                            sx={{
-                                                fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem', lg: '0.8rem', xl: '0.875rem' },
-                                                minWidth: 'fit-content'
-                                            }}
-                                        />
+                                        <Box sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-end',
+                                            gap: 0.15,
+                                            minWidth: 'fit-content'
+                                        }}>
+                                            <Tooltip title={card.price ? '' : 'No market price available — not counted in totals'}>
+                                                <Chip
+                                                    label={card.price ? formatPrice(card.price) : 'No price'}
+                                                    color={card.price ? 'primary' : 'default'}
+                                                    variant={card.price ? 'filled' : 'outlined'}
+                                                    size="small"
+                                                    sx={{
+                                                        fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem', lg: '0.8rem', xl: '0.875rem' },
+                                                        minWidth: 'fit-content'
+                                                    }}
+                                                />
+                                            </Tooltip>
+                                            {card.lowPrice != null && Number(card.lowPrice) > 0 && (
+                                                <Typography
+                                                    component="span"
+                                                    sx={{
+                                                        fontSize: { xs: '0.55rem', sm: '0.6rem', md: '0.65rem' },
+                                                        color: muted,
+                                                        lineHeight: 1.1,
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    Low {formatPrice(card.lowPrice)}
+                                                </Typography>
+                                            )}
+                                        </Box>
 
                                         <IconButton
                                             onClick={(event) => {
@@ -256,6 +326,7 @@ const CardList = ({
                     >
                         {cards.map((card, index) => {
                             const gradient = getCardGradient(card.subTypeName, '', isDark);
+                            const printing = resolvePrinting(card, cardIdLookup);
                             return (
                                 <Box
                                     key={`${card.uniqueId || card.name}-${index}`}
@@ -275,17 +346,17 @@ const CardList = ({
                                     }}
                                 >
                                     <Box
-                                        component="button"
-                                        type="button"
-                                        onClick={() => handleImageClick(card)}
-                                        aria-label={`Preview ${card.name || 'card'}`}
+                                        component={printing ? 'button' : 'div'}
+                                        type={printing ? 'button' : undefined}
+                                        onClick={printing ? () => handleOpenDetail(card) : undefined}
+                                        aria-label={printing ? `View details for ${card.name || 'card'}` : undefined}
                                         sx={{
                                             position: 'relative',
                                             width: '100%',
                                             aspectRatio: '5 / 7',
                                             p: 0,
                                             border: 0,
-                                            cursor: 'pointer',
+                                            cursor: printing ? 'pointer' : 'default',
                                             backgroundColor: 'rgba(0, 0, 0, 0.15)',
                                             overflow: 'hidden',
                                         }}
@@ -354,6 +425,10 @@ const CardList = ({
                                         gap: 0.35,
                                     }}>
                                         <Typography
+                                            component={printing ? 'button' : 'span'}
+                                            type={printing ? 'button' : undefined}
+                                            onClick={printing ? () => handleOpenDetail(card) : undefined}
+                                            aria-label={printing ? `View details for ${card.name}` : undefined}
                                             sx={{
                                                 color: textColor,
                                                 fontWeight: 600,
@@ -364,6 +439,18 @@ const CardList = ({
                                                 WebkitBoxOrient: 'vertical',
                                                 overflow: 'hidden',
                                                 minHeight: '1.7em',
+                                                border: 0,
+                                                background: 'none',
+                                                p: 0,
+                                                m: 0,
+                                                textAlign: 'left',
+                                                fontFamily: 'inherit',
+                                                cursor: printing ? 'pointer' : 'default',
+                                                textDecoration: printing ? 'underline' : 'none',
+                                                textDecorationColor: 'transparent',
+                                                '&:hover': printing ? {
+                                                    textDecorationColor: 'currentColor',
+                                                } : undefined,
                                             }}
                                             title={card.name}
                                         >
@@ -411,14 +498,6 @@ const CardList = ({
                 )}
             </Box>
         </Box>
-
-        <CardImageModal
-            open={imageModalOpen}
-            onClose={handleImageModalClose}
-            imageUrl={selectedCard?.imageUrl}
-            cardName={selectedCard?.name}
-        />
-        </>
     );
 };
 

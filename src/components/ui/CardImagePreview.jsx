@@ -22,18 +22,28 @@ export const getImageUrl = (imageUrl, size = 'medium') => {
 /**
  * Small thumbnail component for card lists
  */
-export const CardThumbnail = ({ imageUrl, alt, size = 40, onClick }) => {
+export const CardThumbnail = ({ imageUrl, fallbackUrl, alt, size = 40, onClick }) => {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(false);
+    const [currentSrc, setCurrentSrc] = useState(imageUrl);
     const { isDark } = useThemeMode();
 
     // Reset state when imageUrl changes
     useEffect(() => {
         setLoaded(false);
         setError(false);
+        setCurrentSrc(imageUrl);
     }, [imageUrl]);
 
-    if (!imageUrl || error) {
+    const handleError = () => {
+        if (fallbackUrl && currentSrc !== fallbackUrl) {
+            setCurrentSrc(fallbackUrl);
+        } else {
+            setError(true);
+        }
+    };
+
+    if (!currentSrc || error) {
         return (
             <Box
                 onClick={onClick}
@@ -104,10 +114,10 @@ export const CardThumbnail = ({ imageUrl, alt, size = 40, onClick }) => {
                 </Box>
             )}
             <img
-                src={imageUrl}
+                src={currentSrc}
                 alt={alt}
                 onLoad={() => setLoaded(true)}
-                onError={() => setError(true)}
+                onError={handleError}
                 style={{
                     width: '100%',
                     height: '100%',
@@ -207,9 +217,10 @@ export const CardHoverPreview = ({ imageUrl, alt, children, placement = 'right' 
 /**
  * Full-screen modal for viewing card image
  */
-export const CardImageModal = ({ open, onClose, imageUrl, cardName }) => {
+export const CardImageModal = ({ open, onClose, imageUrl, fallbackUrl, cardName }) => {
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState(false);
+    const [currentSrc, setCurrentSrc] = useState(imageUrl || fallbackUrl);
     const { isDark } = useThemeMode();
 
     // Reset state when modal opens/closes or imageUrl changes
@@ -217,14 +228,23 @@ export const CardImageModal = ({ open, onClose, imageUrl, cardName }) => {
         if (open) {
             setLoaded(false);
             setError(false);
+            setCurrentSrc(imageUrl || fallbackUrl);
         }
-    }, [open, imageUrl]);
+    }, [open, imageUrl, fallbackUrl]);
+
+    const handleError = () => {
+        if (fallbackUrl && currentSrc !== fallbackUrl) {
+            setCurrentSrc(fallbackUrl);
+        } else {
+            setError(true);
+        }
+    };
 
     const handleClose = () => {
         onClose();
     };
 
-    if (!imageUrl) return null;
+    if (!imageUrl && !fallbackUrl) return null;
 
     return (
         <Modal
@@ -307,10 +327,10 @@ export const CardImageModal = ({ open, onClose, imageUrl, cardName }) => {
                             </Box>
                         )}
                         <img
-                            src={imageUrl}
+                            src={currentSrc}
                             alt={cardName}
                             onLoad={() => setLoaded(true)}
-                            onError={() => setError(true)}
+                            onError={handleError}
                             style={{
                                 maxWidth: '85vw',
                                 maxHeight: '85vh',

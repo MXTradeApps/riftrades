@@ -165,6 +165,7 @@ const CardPanel = ({
                 cards={cards}
                 onRemoveCard={onRemoveCard}
                 onUpdateQuantity={onUpdateQuantity}
+                disabled={disabled}
                 viewMode={viewMode}
                 isLandscape={isLandscape}
             />
