@@ -1,2 +1,2 @@
-productId,name,cleanName,imageUrl,categoryId,groupId,url,modifiedOn,imageCount
-714486,Gift of the Rift Bundle,Gift of the Rift Bundle,https://tcgplayer-cdn.tcgplayer.com/product/714486_200w.jpg,89,24861,https://cpt.tcgcsv.com/LPK7,2026-08-31T18:51:54.913,0
+productId,name,cleanName,imageUrl,categoryId,groupId,url,modifiedOn,imageCount,lowPrice,midPrice,highPrice,marketPrice,directLowPrice,subTypeName
+714486,Gift of the Rift Bundle,Gift of the Rift Bundle,https://tcgplayer-cdn.tcgplayer.com/product/714486_200w.jpg,89,24861,https://cpt.tcgcsv.com/LPK7,2026-08-31T18:51:54.913,0,299.99,299.99,299.99,,,Normal
