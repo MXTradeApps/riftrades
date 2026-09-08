@@ -1,7 +1,7 @@
 {
   "metadata": {
     "game": "Riftbound",
-    "generatedAt": "2026-09-07T19:35:09.840Z",
+    "generatedAt": "2026-09-08T19:15:17.066Z",
     "totalFiles": 13,
     "totalRecords": 2071,
     "sourceManifest": {
@@ -40,7 +40,7 @@
       "24832": "Legacy",
       "24861": "Riftbound Bundles"
     },
-    "cardmarketMergedAt": "2026-09-07T19:35:11.497Z",
+    "cardmarketMergedAt": "2026-09-08T19:15:17.926Z",
     "cardmarketProductsUrl": "https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_22.json",
     "cardmarketPricesUrl": "https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_22.json",
     "cardmarketMatchCount": 1846,
